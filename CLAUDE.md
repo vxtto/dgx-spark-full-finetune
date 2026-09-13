@@ -24,15 +24,15 @@ should be corrected.
 
 ## Context
 
-We are building a domain-specialized LLM for **TCAD** via **supervised fine-tuning**,
-trained on an **NVIDIA DGX Spark located in the US** and reached over SSH. The repo
-holds code, configs, and docs — never weights, checkpoints, or large datasets. The
-project is run by Alfredo and Vittorio.
+The project is run by Alfredo and Vittorio. One sentence has been decided: **we want
+to train an LLM on an NVIDIA DGX Spark**, located in the US and reached over SSH. The
+repo holds code, configs, and docs — never weights, checkpoints, or large datasets.
 
 ## The project is early — propose, don't decide
 
-**Nothing is decided yet**: not the data, not the base model, not the fine-tuning
-technique, not the framework, not the evaluation (`AGENTS.md` §4).
+**Nothing else is decided yet**: not the domain or use case, not the data, not the
+base model, not the training method, not the framework, not the evaluation
+(`AGENTS.md` §4).
 
 - Never fill these in with a default, and never write code that only works under one
   unstated choice — that is deciding by implementation.
@@ -77,8 +77,8 @@ requested.
 
 ## Guardrails
 
-- Never print, echo, or commit `.env`, API keys, or licensed vendor material.
-- Never commit weights, checkpoints, simulation outputs, or datasets over a few MB.
+- Never print, echo, or commit `.env`, API keys, or licensed material.
+- Never commit weights, checkpoints, or datasets over a few MB.
 - Never mix evaluation material into training data.
 - Ask if a data source's licensing is unclear.
 

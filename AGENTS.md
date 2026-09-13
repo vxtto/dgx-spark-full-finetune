@@ -1,4 +1,4 @@
-# AGENTS.md — TCAD LLM Supervised Fine-Tuning
+# AGENTS.md — LLM Training on DGX Spark
 
 Canonical guide for any coding agent (Claude Code, Codex, Cursor, …) working in this
 repository. Claude Code reads `CLAUDE.md`, which points here; keep this file as the
@@ -22,8 +22,9 @@ single source of truth and update it when scope or conventions change.
 
 ## Status: early — nothing is decided yet
 
-The goal is set; **everything about how to reach it is still open** (§4). Not the
-data, not the base model, not the training method, not the stack.
+One sentence has been decided: **we want to train an LLM on the DGX Spark.**
+Everything else is open (§4) — the domain and use case, the data, the base model, the
+training method, the stack, and how success is measured.
 
 Do not assume a default and do not let an implementation choice quietly settle one of
 these questions. An agent's job here is to **lay out options with trade-offs and
@@ -31,21 +32,12 @@ wait**, not to pick.
 
 ## 1. Project scope
 
-Build a **domain-specialized LLM for TCAD** (Technology Computer-Aided Design) via
-**Supervised Fine-Tuning**, trained on an **NVIDIA DGX Spark** located in the United
-States and accessed remotely.
+**Train an LLM on an NVIDIA DGX Spark** located in the United States and accessed
+remotely.
 
-Intended capabilities, in priority order:
-
-1. **Code generation** — produce valid TCAD simulation input from a natural-language
-   request.
-2. **Domain Q&A** — answer questions about TCAD syntax, physics models, meshing, and
-   convergence troubleshooting.
-3. **Flow assistance** — explain, repair, and adapt existing simulation setups.
-
-Out of scope for now: anything past SFT, surrogate/physics modelling of device
-behaviour, agentic execution of simulations, and serving infrastructure beyond a local
-inference smoke test.
+That is the entire scope as it stands today. What the model should be good at, what it
+trains on, and how it is trained are open questions (§4), not omissions from this
+document — treat them as such.
 
 **Team:** Alfredo Ceci and Vittorio. Every decision in §4 belongs to them.
 
@@ -101,11 +93,14 @@ explicitly requested. Use the `gh` CLI.
 against the §2 constraints, let the team choose, then record the outcome in
 `docs/decisions.md`.
 
+- **Domain and use case** — what the model is being specialized for, and what it
+  should be able to do.
 - **Data** — what the training corpus is, where it comes from, how it is built, and
   what licensing allows.
 - **Base model** — family, size, license.
-- **Fine-tuning technique** — full fine-tuning vs. parameter-efficient methods,
-  precision, quantization, and the hyperparameters that follow.
+- **Training method** — the kind of training itself, then the technique within it
+  (full fine-tuning vs. parameter-efficient methods), precision, quantization, and the
+  hyperparameters that follow.
 - **Training framework and environment** — subject to the aarch64/CUDA-13 constraint.
 - **Evaluation** — what "better" means for this model, and how it is measured.
 - **Tooling** — experiment tracking, serving/inference path.
@@ -113,8 +108,7 @@ against the §2 constraints, let the team choose, then record the outcome in
 ## 5. Repository hygiene
 
 This repo holds **code, configs, and docs**. Never commit: model weights, checkpoints,
-datasets over a few MB, simulation outputs, `.env` contents, API keys, or licensed
-vendor material. Keep the large artifacts on the Spark or in object storage; if a
+datasets over a few MB, `.env` contents, API keys, or licensed material. Keep the large artifacts on the Spark or in object storage; if a
 dataset must be versioned, use Git LFS and say so in `docs/`.
 
 Two invariants that hold regardless of what §4 decides:
