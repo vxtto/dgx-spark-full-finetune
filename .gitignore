@@ -1,4 +1,43 @@
+# Secrets
 .env
-venv/
+.env.*
+!.env.example
+
+# Agent / editor local state
 .claude/
 .codex/
+.DS_Store
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+
+# Model weights and checkpoints — never in git
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+checkpoints/
+outputs/
+runs/
+wandb/
+models/
+
+# Datasets — keep on the Spark or in object storage (see docs/data-card.md)
+data/raw/
+data/interim/
+data/processed/
+*.jsonl
+!data/eval/**/*.jsonl
+
+# TCAD simulation artifacts
+*.tdr
+*.plt
+*.log
+n@node@*
