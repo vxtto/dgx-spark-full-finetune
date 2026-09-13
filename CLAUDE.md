@@ -1,90 +1,129 @@
-# CLAUDE.md
+# Agent instructions — LLM Training on DGX Spark
 
-Project-specific instructions for Claude Code.
+Guide for any coding agent (Claude Code, Codex, Cursor, …) working in this repository.
+`AGENTS.md` and `CLAUDE.md` are **two identical copies of this same document** — one
+source of truth, two file names, because different tools look for different names.
 
-> ## ⚠️ Keep `CLAUDE.md` and `AGENTS.md` in sync
+> ## ⚠️ Keep `AGENTS.md` and `CLAUDE.md` identical
 >
-> **These two files change together, always.** If you edit one, you edit the other in
-> the same change — never one alone, never "I'll update the other later".
+> **The two files must be byte-for-byte the same.** There is no Claude-specific half
+> and no canonical half: every rule below applies to every agent.
 >
-> - Content present in both must stay **identical in substance**: same rules, same
->   constraints, same decisions. Don't let the two drift into different wordings of
->   different rules.
-> - Content that belongs to only one file still requires **reading the other file**
->   before committing, to confirm nothing there now contradicts the edit.
-> - A commit that touches only one of the two is incomplete. Check with
->   `git diff --name-only` before committing.
+> - Edit one file, then immediately copy it over the other:
+>   `cp AGENTS.md CLAUDE.md` (or the reverse). Never hand-edit both.
+> - Verify before committing: `diff AGENTS.md CLAUDE.md` must print nothing, and
+>   `git diff --name-only` must list both files.
+> - A commit that touches only one of the two is incomplete.
 > - The same applies to any other agent instruction file added later.
 
-**Read `AGENTS.md` first — it is the canonical guide.** This file only adds what is
-specific to working through Claude Code; when the two disagree, `AGENTS.md` wins and
-should be corrected.
+---
 
-@AGENTS.md
+## Status: early — nothing is decided yet
 
-## Context
+One sentence has been decided: **we want to train an LLM on the DGX Spark.**
+Everything else is open (§4) — the domain and use case, the data, the base model, the
+training method, the stack, and how success is measured.
 
-The project is run by Alfredo and Vittorio. One sentence has been decided: **we want
-to train an LLM on an NVIDIA DGX Spark**, located in the US and reached over SSH. The
-repo holds code, configs, and docs — never weights, checkpoints, or large datasets.
+Do not assume a default and do not let an implementation choice quietly settle one of
+these questions. An agent's job here is to **lay out options with trade-offs and
+wait**, not to pick.
 
-## The project is early — propose, don't decide
+## 1. Project scope
 
-**Nothing else is decided yet**: not the domain or use case, not the data, not the
-base model, not the training method, not the framework, not the evaluation
-(`AGENTS.md` §4).
+**Train an LLM on an NVIDIA DGX Spark** located in the United States and accessed
+remotely.
 
-- Never fill these in with a default, and never write code that only works under one
-  unstated choice — that is deciding by implementation.
-- When a decision is needed to move forward, lay out the realistic options against the
-  DGX Spark constraints (`AGENTS.md` §2), give the trade-offs, and **stop and ask**.
-- Once something is decided, record it in `docs/decisions.md`.
+That is the entire scope as it stands today. What the model should be good at, what it
+trains on, and how it is trained are open questions (§4), not omissions from this
+document — treat them as such.
 
-## Communication
+**Team:** Alfredo Ceci and Vittorio. Every decision in §4 belongs to them.
 
-- Reply to the user in **Italian**. Code, identifiers, comments, docstrings, file
-  names, and commit messages stay in **English**.
-- Be concrete about GPU cost: before proposing a run, say roughly how long it will
-  occupy the Spark.
+## 2. Hardware — NVIDIA DGX Spark (remote, US)
 
-## Ticketing — GitHub issues and milestones
+GB10 Grace Blackwell Superchip: **aarch64** Arm CPU + Blackwell GPU, **128 GB unified
+LPDDR5X** at **~273 GB/s**, DGX OS, CUDA 13.x, compute capability **sm_121**. Verify
+on the box (`nvidia-smi`, `uname -m`, `free -h`) before relying on these numbers.
 
-Work is tracked with **GitHub issues and milestones** on `aceci0127/training-an-LLM`
-(see `AGENTS.md` §3). There is no other tracker.
+What it means in practice:
 
-- Look up the issue behind the request and work to its acceptance criteria rather than
-  inferring scope.
-- Each open decision should have its own issue — that is where the options, the
-  trade-offs, and the final rationale belong.
-- Anything uncovered outside the current task becomes a new issue rather than silent
-  scope creep. Reference issues from commits and PRs (`Refs #12`, `Closes #12`).
+- **Big models fit; they don't run fast.** Memory is generous, bandwidth is not, so
+  throughput — not "does it fit" — decides what is feasible.
+- **Single node, single GPU.** No multi-node sharding.
+- **aarch64 + sm_121 breaks many prebuilt wheels.** Check for an aarch64 + CUDA 13
+  build before designing around a library; prefer NVIDIA's `nvcr.io` containers.
+- **The laptop is for authoring only.** All training and GPU work runs on the Spark
+  over SSH, under `tmux`/`nohup` with logs to a file.
 
-Use the `gh` CLI. Creating, editing, commenting on, or closing an issue or milestone
-is outward-facing: **draft the text and ask first**, unless that was explicitly
-requested.
+## 3. Project tracking — GitHub issues and milestones
 
-## Execution rules
+Work is tracked with **GitHub issues and milestones** on `aceci0127/training-an-LLM`.
+There is no separate tracker; if a piece of work isn't an issue, it isn't planned.
 
-- **Never start training, large model downloads, or GPU work on this laptop.** Author
-  the code and config here; hand over (or run over SSH, when configured) the command
+- **Issues** are the unit of work — including each open decision in §4, so the options
+  and the rationale are captured where the outcome lands.
+- **Milestones** group issues into project phases.
+- **Read before writing code:** work to the issue's acceptance criteria instead of
+  guessing scope, and check for prior discussion before re-deriving a decision.
+- Anything uncovered outside the current task becomes a new issue. Link issues from
+  commits and PRs (`Refs #12`, `Closes #12`).
+
+Creating, editing, commenting on, or closing an issue or milestone is an
+**outward-facing action**: propose the text and **ask before writing**, unless that was
+explicitly requested. Use the `gh` CLI.
+
+## 4. Open decisions
+
+**Nothing below has been decided.** When one comes up, present the realistic options
+against the §2 constraints, let the team choose, then record the outcome in
+`docs/decisions.md`.
+
+- **Domain and use case** — what the model is being specialized for, and what it
+  should be able to do.
+- **Data** — what the training corpus is, where it comes from, how it is built, and
+  what licensing allows.
+- **Base model** — family, size, license.
+- **Training method** — the kind of training itself, then the technique within it
+  (full fine-tuning vs. parameter-efficient methods), precision, quantization, and the
+  hyperparameters that follow.
+- **Training framework and environment** — subject to the aarch64/CUDA-13 constraint.
+- **Evaluation** — what "better" means for this model, and how it is measured.
+- **Tooling** — experiment tracking, serving/inference path.
+
+## 5. Repository hygiene and guardrails
+
+This repo holds **code, configs, and docs**. Keep large artifacts on the Spark or in
+object storage; if a dataset must be versioned, use Git LFS and say so in `docs/`.
+
+- Never commit model weights, checkpoints, or datasets over a few MB.
+- Never print, echo, or commit `.env` contents, API keys, or licensed material.
+- Ask if a data source's licensing is unclear.
+- **Evaluation material never enters training data**, in any form or paraphrase.
+- **Every run is reproducible** from one config file plus one data snapshot, both
+  logged in the run directory and recorded in `docs/experiments.md`. An untracked run
+  didn't happen.
+
+## 6. Execution rules and conventions
+
+- **Never start training, large model downloads, or GPU work on the laptop.** Author
+  the code and config locally; hand over (or run over SSH, when configured) the command
   for the Spark.
 - Long remote jobs go under `tmux`/`nohup` with logs to a file, so a dropped SSH
   session doesn't kill them.
-- Use the session scratchpad for throwaway scripts and exploratory output — not the
-  project tree.
 - Before adding a Python dependency, verify it has an **aarch64 + CUDA 13 (sm_121)**
   build; if it needs building from source, record the command in `docs/environment.md`.
-
-## Guardrails
-
-- Never print, echo, or commit `.env`, API keys, or licensed material.
-- Never commit weights, checkpoints, or datasets over a few MB.
-- Never mix evaluation material into training data.
-- Ask if a data source's licensing is unclear.
-
-## Conventions
-
 - One config file per run under `configs/`; no hyperparameters hardcoded in scripts.
 - Extend an existing pipeline stage rather than creating `*_v2` / `*_final` variants.
-- Log each run in `docs/experiments.md` — config, data snapshot, wall time, metrics,
-  and what it was testing.
+- Use a scratch directory for throwaway scripts and exploratory output — not the
+  project tree.
+
+## 7. Working agreements
+
+- Code, identifiers, comments, docstrings, file names, and commit messages: **English**.
+  Conversation with the team: **Italian**.
+- **`AGENTS.md` and `CLAUDE.md` are edited together and stay identical** — see the sync
+  rule at the top.
+- **Propose, don't decide.** On anything in §4, present options with trade-offs and
+  wait. Writing code that only works under one unstated choice counts as deciding.
+- Be concrete about GPU cost: before proposing a run, say roughly how long it will
+  occupy the Spark.

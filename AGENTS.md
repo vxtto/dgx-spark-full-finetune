@@ -1,21 +1,19 @@
-# AGENTS.md — LLM Training on DGX Spark
+# Agent instructions — LLM Training on DGX Spark
 
-Canonical guide for any coding agent (Claude Code, Codex, Cursor, …) working in this
-repository. Claude Code reads `CLAUDE.md`, which points here; keep this file as the
-single source of truth and update it when scope or conventions change.
+Guide for any coding agent (Claude Code, Codex, Cursor, …) working in this repository.
+`AGENTS.md` and `CLAUDE.md` are **two identical copies of this same document** — one
+source of truth, two file names, because different tools look for different names.
 
-> ## ⚠️ Keep `AGENTS.md` and `CLAUDE.md` in sync
+> ## ⚠️ Keep `AGENTS.md` and `CLAUDE.md` identical
 >
-> **These two files change together, always.** If you edit one, you edit the other in
-> the same change — never one alone, never "I'll update the other later".
+> **The two files must be byte-for-byte the same.** There is no Claude-specific half
+> and no canonical half: every rule below applies to every agent.
 >
-> - Content present in both must stay **identical in substance**: same rules, same
->   constraints, same decisions. Don't let the two drift into different wordings of
->   different rules.
-> - Content that belongs to only one file still requires **reading the other file**
->   before committing, to confirm nothing there now contradicts the edit.
-> - A commit that touches only one of the two is incomplete. Check with
->   `git diff --name-only` before committing.
+> - Edit one file, then immediately copy it over the other:
+>   `cp AGENTS.md CLAUDE.md` (or the reverse). Never hand-edit both.
+> - Verify before committing: `diff AGENTS.md CLAUDE.md` must print nothing, and
+>   `git diff --name-only` must list both files.
+> - A commit that touches only one of the two is incomplete.
 > - The same applies to any other agent instruction file added later.
 
 ---
@@ -92,26 +90,40 @@ against the §2 constraints, let the team choose, then record the outcome in
 - **Evaluation** — what "better" means for this model, and how it is measured.
 - **Tooling** — experiment tracking, serving/inference path.
 
-## 5. Repository hygiene
+## 5. Repository hygiene and guardrails
 
-This repo holds **code, configs, and docs**. Never commit: model weights, checkpoints,
-datasets over a few MB, `.env` contents, API keys, or licensed material. Keep the large artifacts on the Spark or in object storage; if a
-dataset must be versioned, use Git LFS and say so in `docs/`.
+This repo holds **code, configs, and docs**. Keep large artifacts on the Spark or in
+object storage; if a dataset must be versioned, use Git LFS and say so in `docs/`.
 
-Two invariants that hold regardless of what §4 decides:
-
+- Never commit model weights, checkpoints, or datasets over a few MB.
+- Never print, echo, or commit `.env` contents, API keys, or licensed material.
+- Ask if a data source's licensing is unclear.
 - **Evaluation material never enters training data**, in any form or paraphrase.
 - **Every run is reproducible** from one config file plus one data snapshot, both
   logged in the run directory and recorded in `docs/experiments.md`. An untracked run
   didn't happen.
 
-## 6. Working agreements for agents
+## 6. Execution rules and conventions
 
-- Code, identifiers, comments, docstrings, and commit messages: **English**.
+- **Never start training, large model downloads, or GPU work on the laptop.** Author
+  the code and config locally; hand over (or run over SSH, when configured) the command
+  for the Spark.
+- Long remote jobs go under `tmux`/`nohup` with logs to a file, so a dropped SSH
+  session doesn't kill them.
+- Before adding a Python dependency, verify it has an **aarch64 + CUDA 13 (sm_121)**
+  build; if it needs building from source, record the command in `docs/environment.md`.
+- One config file per run under `configs/`; no hyperparameters hardcoded in scripts.
+- Extend an existing pipeline stage rather than creating `*_v2` / `*_final` variants.
+- Use a scratch directory for throwaway scripts and exploratory output — not the
+  project tree.
+
+## 7. Working agreements
+
+- Code, identifiers, comments, docstrings, file names, and commit messages: **English**.
   Conversation with the team: **Italian**.
-- **`AGENTS.md` and `CLAUDE.md` are edited together** — see the sync rule at the top.
+- **`AGENTS.md` and `CLAUDE.md` are edited together and stay identical** — see the sync
+  rule at the top.
 - **Propose, don't decide.** On anything in §4, present options with trade-offs and
   wait. Writing code that only works under one unstated choice counts as deciding.
-- Don't run training, large downloads, or GPU work from the laptop. Propose the
-  command for the Spark instead.
-- When adding a dependency, check it has an aarch64 + CUDA 13 build first.
+- Be concrete about GPU cost: before proposing a run, say roughly how long it will
+  occupy the Spark.
