@@ -2,9 +2,11 @@ Training an LLM
 
 
 ## Goal
-Can I improve a fixed Qwen3.5 terminal agent on unseen Terminal-Bench 2.0 tasks through trajectory fine-tuning, while keeping its inference budget and agent harness constant?
+The goal is to improve an LLM open-weight on the Terminal Bench 2.0.
+
 
 ## Why are we doing this project
 
 
-## Stack
+## How
+SFT with LoRA

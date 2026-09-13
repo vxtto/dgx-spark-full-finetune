@@ -1,0 +1,74 @@
+# LoRA SFT — baseline dependency set
+#
+# Target: NVIDIA DGX Spark (GB10) — aarch64, CUDA 13.x, sm_121.
+#
+# This file lists the *baseline* stack only. The training framework is still an
+# open decision (CLAUDE.md §4); the alternatives are listed at the bottom,
+# commented out, and must not be enabled without a recorded decision.
+#
+# Versions verified against PyPI on 2026-09-13. Bounds are "current major,
+# capped before the next one": the latest release is the floor, and a major
+# bump is excluded so an upstream breaking change cannot land silently.
+# Whether these exact wheels resolve on aarch64 + CUDA 13 still has to be
+# confirmed on the box. After a successful install on the Spark, freeze the
+# resolved set for reproducibility (§5):
+#
+#     pip freeze > requirements.lock.txt
+#
+# PyTorch is intentionally NOT pinned here. On DGX OS it ships preinstalled or
+# comes from NVIDIA's own index, not from PyPI. Verify first:
+#
+#     python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_capability())"
+#
+# and only install it explicitly if missing.
+
+# --- Core ---------------------------------------------------------------
+# NOTE: transformers 5.x, trl 1.x, datasets 5.x and huggingface-hub 1.x are all
+# recent major releases. Most LoRA/SFT tutorials and blog posts still target the
+# previous majors (transformers 4.x / trl 0.x) — expect API drift when adapting
+# example code.
+torch>=2.14,<3                 # verify against the preinstalled DGX build first
+transformers>=5.17,<6
+peft>=0.20,<1                  # LoRA / adapters
+trl>=1.13,<2                   # SFTTrainer
+accelerate>=1.15,<2
+datasets>=5.0.1,<6
+
+# --- Tokenization / model I/O -------------------------------------------
+tokenizers>=0.23.2,<1
+sentencepiece>=0.2.2,<1
+safetensors>=0.8,<1
+huggingface-hub>=1.31,<2
+
+# --- Config & utilities -------------------------------------------------
+pyyaml>=6.0.3,<7               # one config file per run (§6)
+numpy>=2.5,<3
+
+# --- Experiment tracking ------------------------------------------------
+# Tooling is an open decision (§4) — wandb is listed as the most common default,
+# swap or drop once the team chooses.
+wandb>=0.30,<1
+tensorboard>=2.21,<3
+
+# --- Needs verification on aarch64 / CUDA 13 (sm_121) -------------------
+# PyPI wheel availability checked 2026-09-13. A published aarch64 wheel is NOT
+# proof of sm_121 support — the wheel's bundled CUDA kernels still have to cover
+# compute capability 12.1. Confirm on the box before relying on either.
+#
+# bitsandbytes: ships manylinux_2_24_aarch64 wheels — only needed for QLoRA
+#               (4/8-bit base model).
+# bitsandbytes>=0.50.2,<1
+#
+# flash-attn:   sdist only, NO prebuilt wheels at all. Installing means a source
+#               build (long, needs nvcc + matching torch). Optional — faster
+#               attention / long sequences. If built, record the exact command
+#               in docs/environment.md (§6).
+# flash-attn>=2.8.3
+
+# --- Alternative training frameworks (open decision, §4) ----------------
+# Mutually exclusive with a hand-written trl loop. Do not uncomment without
+# recording the choice in docs/decisions.md.
+#
+# axolotl>=0.19
+# llamafactory>=0.9.5
+# unsloth>=2026.9.4
