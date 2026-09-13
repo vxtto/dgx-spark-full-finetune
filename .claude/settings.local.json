@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "gitea-official",
+    "wikijs-official"
+  ]
+}
