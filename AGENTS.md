@@ -43,32 +43,19 @@ document — treat them as such.
 
 ## 2. Hardware — NVIDIA DGX Spark (remote, US)
 
-Spec notes (verify on the box with `nvidia-smi`, `uname -m`, `free -h` before relying
-on them):
+GB10 Grace Blackwell Superchip: **aarch64** Arm CPU + Blackwell GPU, **128 GB unified
+LPDDR5X** at **~273 GB/s**, DGX OS, CUDA 13.x, compute capability **sm_121**. Verify
+on the box (`nvidia-smi`, `uname -m`, `free -h`) before relying on these numbers.
 
-- GB10 Grace Blackwell Superchip: 20-core **aarch64** Arm CPU + Blackwell GPU.
-- **128 GB coherent unified LPDDR5X** shared CPU/GPU, **~273 GB/s** bandwidth.
-- DGX OS (Ubuntu-based), CUDA 13.x, compute capability **sm_121**.
+What it means in practice:
 
-These are the constraints every open decision has to live inside. State them when
-weighing options; don't resolve them unilaterally:
-
-- **Capacity is generous, bandwidth is not.** 128 GB of unified memory means a large
-  model *fits*; ~273 GB/s means it trains slowly. "Does it fit" is therefore not the
-  deciding question — throughput at the chosen sequence length is.
-- **Single node, single GPU.** No multi-node sharding; effective batch size comes from
-  gradient accumulation.
-- **aarch64 + sm_121 breaks many prebuilt wheels.** Whatever stack is chosen, check
-  for an aarch64 + CUDA 13 build *before* designing around it. Prefer NVIDIA's
-  `nvcr.io` aarch64 containers; when something must be built from source, record the
-  exact command in `docs/environment.md`.
-- **Unified memory** means a GPU allocation failure can surface as host OOM. Leave
-  headroom; don't run heavy data prep concurrently with training.
-
-**Access model:** the laptop (`darwin`, this working directory) is for authoring code,
-configs, and docs. All training, evaluation, and GPU-bound work runs on the Spark over
-SSH. Never launch a training job locally. Long jobs run under `tmux`/`nohup` with logs
-to a file, so a dropped SSH session doesn't kill them.
+- **Big models fit; they don't run fast.** Memory is generous, bandwidth is not, so
+  throughput — not "does it fit" — decides what is feasible.
+- **Single node, single GPU.** No multi-node sharding.
+- **aarch64 + sm_121 breaks many prebuilt wheels.** Check for an aarch64 + CUDA 13
+  build before designing around a library; prefer NVIDIA's `nvcr.io` containers.
+- **The laptop is for authoring only.** All training and GPU work runs on the Spark
+  over SSH, under `tmux`/`nohup` with logs to a file.
 
 ## 3. Project tracking — GitHub issues and milestones
 
