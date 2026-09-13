@@ -120,7 +120,6 @@ object storage; if a dataset must be versioned, use Git LFS and say so in `docs/
 ## 7. Working agreements
 
 - Code, identifiers, comments, docstrings, file names, and commit messages: **English**.
-  Conversation with the team: **Italian**.
 - **`AGENTS.md` and `CLAUDE.md` are edited together and stay identical** — see the sync
   rule at the top.
 - **Propose, don't decide.** On anything in §4, present options with trade-offs and
