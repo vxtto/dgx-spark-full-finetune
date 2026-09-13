@@ -2,6 +2,21 @@
 
 Project-specific instructions for Claude Code.
 
+> ## ⚠️ Keep `CLAUDE.md` and `AGENTS.md` in sync
+>
+> **These two files change together, always.** If you edit one, you edit the other in
+> the same change — never one alone, never "I'll update the other later".
+>
+> - Content present in both must stay **identical in substance**: same rules, same
+>   constraints, same decisions. Don't let the two drift into different wordings of
+>   different rules.
+> - Content that belongs to only one file (Claude Code specifics here, the long-form
+>   project detail in `AGENTS.md`) still requires **reading the other file** before
+>   committing, to confirm nothing there now contradicts the edit.
+> - A commit that touches only one of the two is incomplete. Check with
+>   `git diff --name-only` before committing.
+> - The same applies to any other agent instruction file added later.
+
 **Read `AGENTS.md` first — it is the canonical guide** to this project's scope,
 hardware, data pipeline, and conventions. This file only adds what is specific to
 working through Claude Code; when the two disagree, `AGENTS.md` wins and should be
@@ -81,6 +96,8 @@ requested.
 
 ## Conventions
 
+- **`CLAUDE.md` and `AGENTS.md` are edited together.** Any change to one is mirrored
+  in the other in the same commit — see the sync rule at the top of this file.
 - One config file per run under `configs/`; no hyperparameters hardcoded in scripts.
 - Keep `src/data/` independent of any specific model or tokenizer, apart from a final
   swappable formatting step.

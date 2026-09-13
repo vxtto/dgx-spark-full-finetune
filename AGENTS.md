@@ -4,6 +4,21 @@ Canonical guide for any coding agent (Claude Code, Codex, Cursor, …) working i
 repository. Claude Code reads `CLAUDE.md`, which points here; keep this file as the
 single source of truth and update it when scope, stack, or conventions change.
 
+> ## ⚠️ Keep `AGENTS.md` and `CLAUDE.md` in sync
+>
+> **These two files change together, always.** If you edit one, you edit the other in
+> the same change — never one alone, never "I'll update the other later".
+>
+> - Content present in both must stay **identical in substance**: same rules, same
+>   constraints, same decisions. Don't let the two drift into different wordings of
+>   different rules.
+> - Content that belongs to only one file (Claude Code specifics in `CLAUDE.md`, the
+>   long-form project detail in `AGENTS.md`) still requires **reading the other file**
+>   before committing, to confirm nothing there now contradicts the edit.
+> - A commit that touches only one of the two is incomplete. Check with
+>   `git diff --name-only` before committing.
+> - The same applies to any other agent instruction file added later.
+
 **Status: early. Nothing about the model or the training method has been chosen yet.**
 See §9 — do not assume defaults, do not write code that silently commits the project
 to one of the open decisions.
@@ -257,6 +272,8 @@ under the §3 constraints and let the team choose; then record the outcome in
 
 - Code, identifiers, comments, docstrings, and commit messages: **English**.
   Conversation with the team: **Italian**.
+- **`AGENTS.md` and `CLAUDE.md` are edited together.** Any change to one is mirrored
+  in the other in the same commit — see the sync rule at the top of this file.
 - **Propose, don't decide.** On anything in §9, present options with trade-offs and
   wait. Writing code that works only under one unstated choice counts as deciding.
 - Don't run training, large downloads, or GPU work from the laptop. Propose the
