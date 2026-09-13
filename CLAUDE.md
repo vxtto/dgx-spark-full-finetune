@@ -40,6 +40,24 @@ technique, not the framework, not the data-synthesis model (`AGENTS.md` §9).
 - Be concrete about GPU cost: before proposing a run, say roughly how long it will
   occupy the Spark.
 
+## Ticketing — GitHub issues and milestones
+
+Work is tracked with **GitHub issues and milestones** on `aceci0127/training-an-LLM`
+(see `AGENTS.md` §4). There is no other tracker.
+
+- Before starting, look up the issue behind the request and work to its acceptance
+  criteria rather than inferring scope; check it for prior discussion.
+- Each open decision from `AGENTS.md` §9 should have its own issue — that is where the
+  options, the trade-offs, and the final rationale belong.
+- Milestones mark the project phases; use them to tell what the current phase depends
+  on.
+- Anything uncovered outside the current task becomes a new issue rather than silent
+  scope creep. Reference issues from commits and PRs (`Refs #12`, `Closes #12`).
+
+Use the `gh` CLI. Creating, editing, commenting on, or closing an issue or milestone
+is outward-facing: **draft the text and ask first**, unless that action was explicitly
+requested.
+
 ## Execution rules
 
 - **Never start training, large model downloads, or GPU work on this laptop.** Author

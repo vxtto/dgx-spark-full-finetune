@@ -120,6 +120,31 @@ What *is* fixed:
 When a decision from §9 is made, record it here with a one-line rationale and move it
 out of §9.
 
+### Project tracking — GitHub issues and milestones
+
+Work is tracked with **GitHub issues and milestones** on the project repository
+(`aceci0127/training-an-LLM`). There is no separate tracker; if a piece of work isn't
+an issue, it isn't planned.
+
+- **Issues** are the unit of work: a pipeline stage, an experiment to run, an eval to
+  build, an environment blocker, or one of the open decisions in §9. Each open
+  decision should exist as its own issue so the options and the rationale are captured
+  where the outcome lands.
+- **Milestones** group issues into the phases of the project (for example: corpus and
+  data pipeline, evaluation harness, model/method decision, first training runs). Use
+  them to see what the current phase actually depends on.
+- **Read before writing code.** Look up the issue behind a request and work to its
+  acceptance criteria instead of guessing scope; check for prior discussion before
+  re-deriving a decision.
+- **Close the loop.** When work uncovers something outside the current task (a broken
+  deck, a missing eval, a dependency that won't build on aarch64), it becomes a new
+  issue. Run outcomes are reported on the issue that requested them, and link the
+  relevant issue from commits and PRs (`Refs #12`, `Closes #12`).
+
+Creating, editing, commenting on, or closing an issue or milestone is an
+**outward-facing action**: propose the text and **ask before writing**, unless that was
+explicitly requested in the current task. Use the `gh` CLI for this.
+
 ## 5. Repository layout (target)
 
 ```
