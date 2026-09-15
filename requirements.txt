@@ -1,3 +1,15 @@
+# ⚠️ SUPERSEDED for training — see docs/decisions.md D-04 (2026-09-15).
+#
+# The training framework is no longer open: we use the tmax fork of open-instruct
+# (https://github.com/hamishivi/tmax), whose dependencies are resolved by `uv sync`
+# inside that repo, NOT from this file. The trl/peft stack below was the baseline
+# proposal and is not what runs.
+#
+# This file is still the reference for anything in THIS repo that is not the
+# training loop (config parsing, data inspection, analysis scripts).
+#
+# ---------------------------------------------------------------------------
+
 # LoRA SFT — baseline dependency set
 #
 # Target: NVIDIA DGX Spark (GB10) — aarch64, CUDA 13.x, sm_121.

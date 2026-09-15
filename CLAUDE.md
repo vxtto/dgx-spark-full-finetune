@@ -45,6 +45,16 @@ GB10 Grace Blackwell Superchip: **aarch64** Arm CPU + Blackwell GPU, **128 GB un
 LPDDR5X** at **~273 GB/s**, DGX OS, CUDA 13.x, compute capability **sm_121**. Verify
 on the box (`nvidia-smi`, `uname -m`, `free -h`) before relying on these numbers.
 
+What it means in practice:
+
+- **Big models fit; they don't run fast.** Memory is generous, bandwidth is not, so
+  throughput — not "does it fit" — decides what is feasible.
+- **Single node, single GPU.** No multi-node sharding.
+- **aarch64 + sm_121 breaks many prebuilt wheels.** Check for an aarch64 + CUDA 13
+  build before designing around a library; prefer NVIDIA's `nvcr.io` containers.
+- **The laptop is for authoring only.** All training and GPU work runs on the Spark
+  over SSH, under `tmux`/`nohup` with logs to a file.
+
 ## 3. Project tracking — GitHub issues and milestones
 
 Work is tracked with **GitHub issues and milestones** on `aceci0127/training-an-LLM`.
