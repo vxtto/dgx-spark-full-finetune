@@ -59,13 +59,16 @@ deliberate replication of §5.1.
 
 ## D-03 — Training method: LoRA SFT (bf16), not full fine-tuning
 
-**Status:** proposed — Alfredo asked this in #6 and Vittorio has not answered.
+**Status:** superseded by D-08 · 2026-09-19 — the memory argument below was measured and is wrong.
 
 **Proposed:** LoRA, bf16, no quantization.
 
-- Full fine-tuning an 8B model needs ~128 GB before activations
+- ~~Full fine-tuning an 8B model needs ~128 GB before activations
   (`docs/theory/lora-sft.md` §2) — the Spark's entire memory, leaving nothing to
-  compute with. LoRA brings this to ~20 GB.
+  compute with. LoRA brings this to ~20 GB.~~
+  **Measured 2026-09-19 and false.** That figure assumes fp32 AdamW (8 bytes/param).
+  With bnb 8-bit AdamW the base is 46 GiB, and a full fine-tune at the paper's 32k
+  sequence length peaks at **~72 GB** — see D-08 and `docs/spark-memory-guardrail.md`.
 - The paper full-fine-tunes across 32 GPUs (see D-05). We have one device.
 - `docs/theory/behaviour-vs-knowledge.md` §5 argues Terminal-Bench failures are
   *behavioural*, the regime LoRA is strongest in. **That is a hypothesis, not a
@@ -183,3 +186,41 @@ Note from paper Table 5: measured score varies by **8 points** on the same model
 depending on harness (Qwen3.5-9B scores 36.0 to 44.1 across four). A baseline number is
 meaningless until the harness is pinned. Baseline must be measured before training,
 not after.
+
+---
+
+## D-08 — Full fine-tuning is viable on the Spark; LoRA is not required
+
+**Status:** proposed — the measurements are settled; the method choice needs
+Alfredo's review (#10). Supersedes the memory argument in D-03.
+
+**Measured**, not estimated. See `docs/spark-memory-guardrail.md` for method and
+`docs/experiments.md` E-1..E-3 for the runs.
+
+A full fine-tune of Qwen3-8B fits on one GB10 at the paper's full `max_seq_length
+32768`, peaking at **~72 GB of 121.7 GiB**, given three things together:
+
+| Change | Effect |
+|---|---|
+| `--use_8bit_optimizer` (bnb AdamW8bit) | optimizer state 65.6 GB → ~17 GB |
+| `--use_liger_kernel` | activations 2.46 → **0.315 MB/token** (7.8x), and ~13% faster |
+| no deepspeed | ZeRO-3 CPU offload moves nothing on a unified pool and its unpinned state can spill to swap |
+
+Consequences for the other decisions:
+
+- **D-05's LoRA adaptations are not needed on this path.** The full fine-tune runs
+  Table 14 unchanged — `max_seq_length 32768`, grad-accum 4, LR 2e-5 — so the run is
+  closer to the paper than the LoRA plan was. The only remaining uncontrolled
+  divergence is the attention backend (D-04: SDPA, not flash attention 3).
+- **Cost: ~2.8 days** of continuous Spark occupancy at a measured 783.9 tokens/sec.
+  LoRA would be cheaper; it is no longer *necessary*.
+
+**Caveat.** This records that full fine-tuning is **feasible**, not that it is better
+than LoRA. Nothing here measures downstream quality — that needs D-07's harness. The
+behavioural-vs-knowledge argument for LoRA in `docs/theory/behaviour-vs-knowledge.md`
+§5 is untouched by this and remains an open hypothesis.
+
+**Required to reproduce:** `patches/finetune-spark.patch` must be applied to the tmax
+checkout. Without it `--use_8bit_optimizer` is silently ignored on a full fine-tune
+and the run allocates fp32 AdamW state. `scripts/sft_qwen3_8b_train_it.sh` refuses to
+start if the patch is absent.

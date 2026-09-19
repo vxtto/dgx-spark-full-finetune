@@ -26,7 +26,7 @@ Minimum and Maximum cuda capability supported by this version of PyTorch is (8.0
 |---|---|---|
 | Arch | aarch64 (Arm) | many CUDA wheels are x86-only |
 | Compute capability | sm_121 (Blackwell) | needs CUDA 13.0 builds; CUDA 12.x will not load |
-| Memory | 128 GB **unified** | no 4-bit quantization needed for an 8B LoRA run |
+| Memory | 128 GB **unified** | no quantization needed; but nothing in the OS can cap a CUDA allocation — see `docs/spark-memory-guardrail.md` |
 | Bandwidth | ~273 GB/s | the real bottleneck — roughly 10× below an H100 |
 
 The last row is the one that sets expectations: this box has plenty of memory and
@@ -88,24 +88,46 @@ is recorded as such in `docs/decisions.md` D-04.
 > If throughput or loss changes unexpectedly between runs, check the
 > `Auto-detected attention implementation:` line in the log first.
 
-## 5. Still unverified on the box
+## 5. Dependency status
 
-Neither has been confirmed on aarch64 + CUDA 13; both are required by open-instruct.
-
-- [ ] `deepspeed>=0.18.3` — JIT-compiles CUDA ops on first use. **Most likely failure
-      point of the whole setup.** If it needs a source build, record the exact command
-      in this file.
+- [x] `bitsandbytes==0.49.1` — **works on sm_121**, verified by running real
+      `AdamW8bit` steps. Ships an aarch64 manylinux wheel; no source build needed.
+- [x] `liger-kernel==0.8.0` — **works on sm_121**. Required for the 32k full
+      fine-tune (D-08).
+- [x] `deepspeed>=0.18.3` — installed, but **not used**. Single node makes ZeRO-3
+      pointless and it is incompatible with `--use_8bit_optimizer`; its CPU offload is
+      actively harmful on a unified pool (D-08). No longer a project risk.
 - [ ] `vllm>=0.19.1` — needed for evaluation/generation, not for the SFT run itself.
       Can be deferred.
 
-## 6. Running long jobs
-
-A dropped SSH session must not kill a 30+ hour run (§6):
+Both wheels are in open-instruct's `uv.lock` but are absent from a venv created with
+`--no-sync`. Install them without disturbing the resolved environment:
 
 ```bash
+uv pip install --python "$TMAX_DIR/training/open-instruct/.venv/bin/python" \
+    --no-deps bitsandbytes==0.49.1 liger-kernel==0.8.0
+```
+
+`scripts/sft_qwen3_8b_train_it.sh` refuses to start if either is missing.
+
+## 6. Running long jobs
+
+A dropped SSH session must not kill a multi-day run (§6). **Start the memory
+guardrail first** — see `docs/spark-memory-guardrail.md`; without it a memory overrun
+makes the box unreachable for hours instead of failing fast.
+
+```bash
+# shell 1 — guardrail, leave running
+LIMIT_GB=110; while sleep 1; do \
+  used=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2}END{print int((t-a)/1048576)}' /proc/meminfo); \
+  if [ "$used" -gt "$LIMIT_GB" ]; then echo "$(date -Is) KILL at ${used}GB"; \
+  pkill -9 -f open_instruct/finetune.py; break; fi; done
+
+# shell 2 — the run
 tmux new -s sft
-bash scripts/run_sft.sh configs/sft_qwen3_8b_lora_spark.yaml
+EXP_NAME=sft_qwen3_8b_run1 bash scripts/sft_qwen3_8b_train_it.sh
 # detach: Ctrl-b d ; reattach: tmux attach -t sft
 ```
 
-`run_sft.sh` tees to `runs/<name>/train.log` regardless.
+Both scripts tee to `runs/<exp_name>_<stamp>/train.log` regardless. `systemd-run --user
+--unit=<name> --collect` is an alternative to tmux that survives logout.
