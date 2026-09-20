@@ -59,20 +59,40 @@ fi
 # finetune.py must carry the Spark patch. Without it --use_8bit_optimizer is
 # reachable only under --use_qlora, so it is SILENTLY IGNORED here and the run
 # allocates fp32 AdamW state (~66 GB instead of ~17 GB) and blows the pool.
-if ! grep -q "args.use_qlora or args.use_8bit_optimizer" "$OI_DIR/open_instruct/finetune.py"; then
-    echo "error: $OI_DIR/open_instruct/finetune.py is not patched." >&2
+if ! grep -q "args.use_qlora or args.use_8bit_optimizer" "$OI_DIR/open_instruct/finetune.py" \
+   || ! grep -q "except ModuleNotFoundError" "$OI_DIR/open_instruct/model_utils.py"; then
+    echo "error: the tmax checkout at $TMAX_DIR is not patched." >&2
+    echo "       finetune.py   : --use_8bit_optimizer is reachable only under --use_qlora," >&2
+    echo "                       so it is silently ignored and fp32 AdamW state is used." >&2
+    echo "       model_utils.py: _is_flash_attn_4_available() raises instead of returning" >&2
+    echo "                       False when flash_attn is absent, so attention detection dies." >&2
     echo "       git -C \"$TMAX_DIR\" apply $REPO_ROOT/patches/finetune-spark.patch" >&2
     exit 1
 fi
 
-# Both are in open-instruct's lockfile but absent from a --no-sync venv.
-for mod in bitsandbytes liger_kernel; do
-    if ! "$OI_DIR/.venv/bin/python" -c "import $mod" >/dev/null 2>&1; then
-        echo "error: '$mod' missing from $OI_DIR/.venv" >&2
-        echo "       uv pip install --python $OI_DIR/.venv/bin/python --no-deps <pinned version>" >&2
+# Check the environment `uv run` will actually use. This is NOT necessarily
+# $OI_DIR/.venv -- uv may resolve the project to a cache environment under
+# ~/.cache/uv/environments-v2/, and checking .venv gives a false pass.
+UV_ENV="$(cd "$OI_DIR" && uv run --no-sync python -c "import sys; print(sys.prefix)" 2>/dev/null | tail -1)"
+echo "uv environment: ${UV_ENV:-<unresolved>}"
+for mod in bitsandbytes liger_kernel olmo_core; do
+    if ! (cd "$OI_DIR" && uv run --no-sync python -c "import $mod") >/dev/null 2>&1; then
+        echo "error: '$mod' missing from $UV_ENV" >&2
+        echo "       uv pip install --python \"$UV_ENV/bin/python\" <pinned version from uv.lock>" >&2
         exit 1
     fi
 done
+
+# flash-attn-4 is declared in open-instruct's pyproject.toml gated only on
+# Darwin, and ships as a py3-none-any wheel, so `uv pip install -e .` WILL
+# install it on aarch64. detect_attn_implementation() then selects flash_4
+# (GB10 reports major 12, and the branch tests >= 10), silently replacing the
+# SDPA backend every measurement in docs/experiments.md was made on.
+if (cd "$OI_DIR" && uv run --no-sync python -c "import flash_attn") >/dev/null 2>&1; then
+    echo "error: flash_attn is installed; attention would silently switch to flash_4." >&2
+    echo "       uv pip uninstall --python \"$UV_ENV/bin/python\" flash-attn-4 flash-attn" >&2
+    exit 1
+fi
 
 # --- Provenance (AGENTS.md section 5: an untracked run didn't happen) ------
 mkdir -p "$RUN_DIR"

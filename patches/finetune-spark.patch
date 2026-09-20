@@ -54,3 +54,22 @@ index d2736366..4b7b0798 100644
          )
      else:
          optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate, fused=args.fused_optimizer)
+diff --git a/training/open-instruct/open_instruct/model_utils.py b/training/open-instruct/open_instruct/model_utils.py
+index 78734590..38d34dd0 100644
+--- a/training/open-instruct/open_instruct/model_utils.py
++++ b/training/open-instruct/open_instruct/model_utils.py
+@@ -66,7 +66,13 @@ def detect_hf_attn_implementation() -> str:
+ 
+ 
+ def _is_flash_attn_4_available() -> bool:
+-    return importlib.util.find_spec("flash_attn.cute") is not None
++    try:
++        return importlib.util.find_spec("flash_attn.cute") is not None
++    except ModuleNotFoundError:
++        # find_spec on a dotted path requires the parent package to be importable;
++        # when flash_attn isn't installed at all (e.g. no aarch64 wheels), it raises
++        # instead of returning None.
++        return False
+ 
+ 
+ @functools.lru_cache(maxsize=1)

@@ -88,6 +88,23 @@ is recorded as such in `docs/decisions.md` D-04.
 > If throughput or loss changes unexpectedly between runs, check the
 > `Auto-detected attention implementation:` line in the log first.
 
+**This is not hypothetical — confirmed 2026-09-20.** `flash-attn` and `flash-attn-3`
+are correctly gated in open-instruct's `pyproject.toml` (`platform_machine != 'aarch64'`
+and x86_64-only respectively), but **`flash-attn-4` is gated only on Darwin** and ships
+as a `py3-none-any` wheel, so it installs here. A plain `uv pip install -e .` in the
+open-instruct checkout resolves 197 packages including `flash-attn-4==4.0.0b5` and
+`vllm==0.26.0`, and would silently move attention from SDPA to `flash_4` — away from
+the backend every number in `docs/experiments.md` was measured on. Install open-instruct's
+dependencies selectively, not with `-e .`.
+`scripts/sft_qwen3_8b_train_it.sh` refuses to start if `flash_attn` is importable.
+
+### `_is_flash_attn_4_available()` needs a patch
+
+With no `flash_attn` installed at all, `importlib.util.find_spec("flash_attn.cute")`
+**raises `ModuleNotFoundError`** rather than returning `None` — `find_spec` on a dotted
+path requires the parent package to be importable. Attention detection therefore dies on
+a clean aarch64 box. `patches/finetune-spark.patch` wraps it in `try/except`.
+
 ## 5. Dependency status
 
 - [x] `bitsandbytes==0.49.1` — **works on sm_121**, verified by running real
@@ -99,6 +116,23 @@ is recorded as such in `docs/decisions.md` D-04.
       actively harmful on a unified pool (D-08). No longer a project risk.
 - [ ] `vllm>=0.19.1` — needed for evaluation/generation, not for the SFT run itself.
       Can be deferred.
+
+**Which environment?** `uv run` in the open-instruct project does **not** necessarily
+use `$TMAX_DIR/training/open-instruct/.venv` — it may resolve to a cache environment
+under `~/.cache/uv/environments-v2/`. Checking `.venv` gives a false pass. Get the real
+one with:
+
+```bash
+cd "$TMAX_DIR/training/open-instruct" && uv run --no-sync python -c "import sys; print(sys.prefix)"
+```
+
+Beyond torch and the five obvious packages, `finetune.py`'s import chain also needs
+these, all pinned from `uv.lock` (verified on a clean clone, 2026-09-20):
+
+`ai2-olmo-core==2.4.0` (git rev `002958a8f15afe5c729affdb12f4c4b12c2f26ad`),
+`litellm==1.75.0`, `nltk==3.9.2`, `langdetect==1.0.9`, `immutabledict==1.2.0`,
+`antlr4-python3-runtime==4.11.0`, `hf-transfer==0.1.9`, `backoff==2.2.1`,
+`absl-py==2.3.1`, `beaker-py==2.5.7`, `ray==2.53.0`.
 
 Both wheels are in open-instruct's `uv.lock` but are absent from a venv created with
 `--no-sync`. Install them without disturbing the resolved environment:

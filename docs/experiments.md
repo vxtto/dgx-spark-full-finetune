@@ -34,6 +34,16 @@ From E-3, measured rather than estimated:
 Step time varies **27–53 s** with sequence length, so any ETA extrapolated from a
 single step is unreliable; use the token total.
 
+## Main run
+
+| Run dir | Started | tmax commit | Status |
+|---|---|---|---|
+| `runs/sft_qwen3_8b_run1_20260920T052358Z` | 2026-09-20 07:24 CEST | `6d3d606c` + `patches/finetune-spark.patch` | in progress — 5,362 steps, ~2.8 days |
+
+Launched on a **clean** `~/tmax` clone and a rebuilt environment (transformers 5.17.0
+rather than E-3's 5.15.1). Step-1 loss `1.0517414808273315` is **bit-identical to E-3**,
+so the stack reproduces despite the version drift.
+
 ## Planned order
 
 The ordering matters more than the individual runs — steps 1–2 exist so that
