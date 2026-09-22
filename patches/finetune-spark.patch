@@ -1,0 +1,75 @@
+diff --git a/training/open-instruct/open_instruct/finetune.py b/training/open-instruct/open_instruct/finetune.py
+index d2736366..4b7b0798 100644
+--- a/training/open-instruct/open_instruct/finetune.py
++++ b/training/open-instruct/open_instruct/finetune.py
+@@ -651,8 +651,11 @@ def main(args: FlatArguments, tc: TokenizerConfig):
+         if args.use_qlora:
+             model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
+         elif args.gradient_checkpointing:
+-            # Enable gradient checkpointing for LoRA (non-QLoRA) too
+-            model.gradient_checkpointing_enable()
++            # Enable gradient checkpointing for LoRA (non-QLoRA) too.
++            # use_reentrant=True: PyTorch's default non-reentrant checkpointing relies on
++            # saved-tensor hooks that conflict with DeepSpeed ZeRO-3's own parameter-gathering
++            # hooks for frozen (non-LoRA) weights, causing recomputation to see empty tensors.
++            model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": True})
+ 
+         logger.info("Initializing LORA model...")
+         peft_config = LoraConfig(
+@@ -665,6 +668,10 @@ def main(args: FlatArguments, tc: TokenizerConfig):
+         )
+         model = get_peft_model(model, peft_config)
+         model.print_trainable_parameters()
++        if args.gradient_checkpointing:
++            # With the base model frozen, embedding outputs don't require grad by default,
++            # which breaks activation-checkpointing recomputation. Standard PEFT fix.
++            model.enable_input_require_grads()
+     elif args.gradient_checkpointing:
+         model.gradient_checkpointing_enable()
+ 
+@@ -725,14 +732,24 @@ def main(args: FlatArguments, tc: TokenizerConfig):
+     # Optimizer
+     optimizer_grouped_parameters = get_optimizer_grouped_parameters(model, args.weight_decay)
+ 
+-    if args.use_qlora:
++    if args.use_qlora or args.use_8bit_optimizer:
+         from bitsandbytes.optim import AdamW  # noqa: PLC0415
+ 
++        # `use_8bit_optimizer` used to be reachable only via QLoRA, so a full
++        # fine-tune passing it silently got torch AdamW at 8 bytes/param (65.6 GB
++        # of state for an 8B model). Reaching bnb directly cuts that to ~2.03
++        # bytes/param.
++        #
++        # is_paged is left on only for QLoRA, its original behaviour. Paged state
++        # allocates via cudaMallocManaged so it can spill to host under pressure;
++        # on GB10 host and device are one LPDDR5X pool, so that buys no physical
++        # headroom while hiding the state from torch.cuda.memory_allocated and
++        # reintroducing a spill path instead of failing fast.
+         optimizer = AdamW(
+             optimizer_grouped_parameters,
+             lr=args.learning_rate,
+             optim_bits=8 if args.use_8bit_optimizer else 32,
+-            is_paged=True,
++            is_paged=args.use_qlora,
+         )
+     else:
+         optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate, fused=args.fused_optimizer)
+diff --git a/training/open-instruct/open_instruct/model_utils.py b/training/open-instruct/open_instruct/model_utils.py
+index 78734590..38d34dd0 100644
+--- a/training/open-instruct/open_instruct/model_utils.py
++++ b/training/open-instruct/open_instruct/model_utils.py
+@@ -66,7 +66,13 @@ def detect_hf_attn_implementation() -> str:
+ 
+ 
+ def _is_flash_attn_4_available() -> bool:
+-    return importlib.util.find_spec("flash_attn.cute") is not None
++    try:
++        return importlib.util.find_spec("flash_attn.cute") is not None
++    except ModuleNotFoundError:
++        # find_spec on a dotted path requires the parent package to be importable;
++        # when flash_attn isn't installed at all (e.g. no aarch64 wheels), it raises
++        # instead of returning None.
++        return False
+ 
+ 
+ @functools.lru_cache(maxsize=1)
