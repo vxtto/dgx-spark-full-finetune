@@ -115,6 +115,36 @@ if ! PYTHONPATH="$TMAX_DIR" "$HARBOR_PY" -c "from Vanillux2Agent import Vanillux
     echo "       uv pip install --python \"$HARBOR_PY\" litellm" >&2; exit 1
 fi
 
+# The bash tool description the agent advertises must be the one the model was
+# trained on. tmax resolves it from <tmax>/sft/preprocessing/config, a directory
+# it never ships, and silently falls back to _DEFAULT_TOOL_SCHEMAS, which says
+# commands run "in a new subshell" where the SFT data says "in a persistent
+# shell". Opposite claims about whether cd and export survive a turn. See
+# patches/tmax-harness-config/README.md.
+EXPECTED_SCHEMA="$REPO_ROOT/patches/tmax-harness-config/tool_schemas.json"
+if ! PYTHONPATH="$TMAX_DIR" "$HARBOR_PY" - "$EXPECTED_SCHEMA" <<'PYCHECK'
+import json, sys
+from rl_data.generator.sample_solutions import TOOL_SCHEMAS
+expected = json.load(open(sys.argv[1]))
+if TOOL_SCHEMAS != expected:
+    got = TOOL_SCHEMAS[0]["function"]["description"] if TOOL_SCHEMAS else "<empty>"
+    want = expected[0]["function"]["description"]
+    print(f"  resolved: {got}\n  expected: {want}", file=sys.stderr)
+    sys.exit(1)
+PYCHECK
+then
+    echo "error: tmax resolves a bash tool schema the model was not trained on." >&2
+    echo "       install the legacy harness config into the tmax checkout:" >&2
+    echo "         mkdir -p \"$TMAX_DIR/sft/preprocessing/config\"" >&2
+    echo "         cp $REPO_ROOT/patches/tmax-harness-config/tool_schemas.json \\" >&2
+    echo "            $REPO_ROOT/patches/tmax-harness-config/system_prompt.txt \\" >&2
+    echo "            \"$TMAX_DIR/sft/preprocessing/config/\"" >&2
+    echo "       (if \$TMAX_DIR is not yours to write to, clone tmax yourself and" >&2
+    echo "        point TMAX_DIR at your copy — do not evaluate without this.)" >&2
+    exit 1
+fi
+echo "bash tool schema: matches the training data"
+
 # amd64 emulation: task images are amd64-only, this box is aarch64, and binfmt
 # registrations do not survive a reboot.
 if [[ ! -e /proc/sys/fs/binfmt_misc/qemu-x86_64 ]]; then
