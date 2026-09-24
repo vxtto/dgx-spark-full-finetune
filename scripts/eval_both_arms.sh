@@ -23,8 +23,9 @@ set -euo pipefail
 # --- Configuration -------------------------------------------------------
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMAX_DIR="${TMAX_DIR:-$HOME/tmax}"
-K="${K:-1}"
+K="${K:-5}"
 N_CONCURRENT="${N_CONCURRENT:-32}"
+TIMEOUT_MULT="${TIMEOUT_MULT:-6}"
 ENDPOINT="${ENDPOINT:-http://localhost:8888/v1}"
 PORT="${PORT:-8888}"
 
@@ -98,8 +99,8 @@ VLLM_PID=$!
 sleep 5
 wait_for_endpoint "$ENDPOINT" || { kill $VLLM_PID 2>/dev/null || true; exit 1; }
 
-echo "Running eval for baseline (K=$K, N_CONCURRENT=$N_CONCURRENT)..."
-MODEL_LABEL=base ARM_MODEL=qwen3-8b K="$K" N_CONCURRENT="$N_CONCURRENT" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
+echo "Running eval for baseline (K=$K, N_CONCURRENT=$N_CONCURRENT, TIMEOUT_MULT=$TIMEOUT_MULT)..."
+MODEL_LABEL=base ARM_MODEL=qwen3-8b K="$K" N_CONCURRENT="$N_CONCURRENT" TIMEOUT_MULT="$TIMEOUT_MULT" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
 
 echo "Killing baseline server..."
 kill $VLLM_PID 2>/dev/null || true
@@ -140,8 +141,8 @@ VLLM_PID=$!
 sleep 5
 wait_for_endpoint "$ENDPOINT" || { kill $VLLM_PID 2>/dev/null || true; exit 1; }
 
-echo "Running eval for fine-tuned (K=$K, N_CONCURRENT=$N_CONCURRENT)..."
-MODEL_LABEL=sft ARM_MODEL=qwen3-8b-sft K="$K" N_CONCURRENT="$N_CONCURRENT" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
+echo "Running eval for fine-tuned (K=$K, N_CONCURRENT=$N_CONCURRENT, TIMEOUT_MULT=$TIMEOUT_MULT)..."
+MODEL_LABEL=sft ARM_MODEL=qwen3-8b-sft K="$K" N_CONCURRENT="$N_CONCURRENT" TIMEOUT_MULT="$TIMEOUT_MULT" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
 
 echo "Killing fine-tuned server..."
 kill $VLLM_PID 2>/dev/null || true
