@@ -10,11 +10,13 @@
 #   5. Runs eval for K attempts
 #
 # Usage (on the Spark, inside tmux):
-#   K=1 bash scripts/eval_both_arms.sh
-#   K=5 bash scripts/eval_both_arms.sh   # matches paper protocol
+#   K=5 bash scripts/eval_both_arms.sh                    # default: N_CONCURRENT=32, ~38h total
+#   K=5 N_CONCURRENT=16 bash scripts/eval_both_arms.sh    # slower (~70h total) but lower latency
+#   K=1 bash scripts/eval_both_arms.sh                    # quick test (~7.6h total)
 #
+# Default N_CONCURRENT=32 gives 423.4 tok/s aggregated (vs 229.4 with N=16).
 # Both evals run against the same endpoint (http://localhost:8888/v1),
-# so they must be sequential. Each eval takes ~7h per K value.
+# so they must be sequential. Cost scales with K and N_CONCURRENT.
 
 set -euo pipefail
 
@@ -22,6 +24,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMAX_DIR="${TMAX_DIR:-$HOME/tmax}"
 K="${K:-1}"
+N_CONCURRENT="${N_CONCURRENT:-32}"
 ENDPOINT="${ENDPOINT:-http://localhost:8888/v1}"
 PORT="${PORT:-8888}"
 
@@ -95,8 +98,8 @@ VLLM_PID=$!
 sleep 5
 wait_for_endpoint "$ENDPOINT" || { kill $VLLM_PID 2>/dev/null || true; exit 1; }
 
-echo "Running eval for baseline (K=$K)..."
-MODEL_LABEL=base ARM_MODEL=qwen3-8b K="$K" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
+echo "Running eval for baseline (K=$K, N_CONCURRENT=$N_CONCURRENT)..."
+MODEL_LABEL=base ARM_MODEL=qwen3-8b K="$K" N_CONCURRENT="$N_CONCURRENT" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
 
 echo "Killing baseline server..."
 kill $VLLM_PID 2>/dev/null || true
@@ -137,8 +140,8 @@ VLLM_PID=$!
 sleep 5
 wait_for_endpoint "$ENDPOINT" || { kill $VLLM_PID 2>/dev/null || true; exit 1; }
 
-echo "Running eval for fine-tuned (K=$K)..."
-MODEL_LABEL=sft ARM_MODEL=qwen3-8b-sft K="$K" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
+echo "Running eval for fine-tuned (K=$K, N_CONCURRENT=$N_CONCURRENT)..."
+MODEL_LABEL=sft ARM_MODEL=qwen3-8b-sft K="$K" N_CONCURRENT="$N_CONCURRENT" bash "$REPO_ROOT/scripts/eval_tb2_vanillux.sh"
 
 echo "Killing fine-tuned server..."
 kill $VLLM_PID 2>/dev/null || true
