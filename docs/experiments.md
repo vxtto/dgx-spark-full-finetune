@@ -64,8 +64,19 @@ step 4 means something.
    failed rollouts, `docs/theory/lora-sft.md` §5 argues they must be dropped. One
    config key apart.
 
+## Evaluation (D-07: K decision)
+
+**Decision: K=5** (2026-09-24). Matches paper protocol. Cost: ~35h per arm, ~70h total
+(~3 days). K=1 would be ~7h per arm but too noisy (95% CI ±9.5% on small effect).
+
+Harness: **Vanillux2Agent** (same as training SFT data generation). Earlier eval
+runs (2026-09-17/18) used terminus-2 and are not comparable.
+
+Launch with: `K=5 bash scripts/eval_both_arms.sh` (on Spark, under tmux).
+
 ## Evaluated runs
 
-| # | Date | Run dir | Model | Data | Config delta vs. baseline | TB 2.1 | TB Lite | Notes |
+| # | Date | Run dir | Model | Harness | K | TB 2.1 | TB Lite | Notes |
 |---|---|---|---|---|---|---|---|---|
-| — | — | — | — | — | — | — | — | *none yet — blocked on D-07* |
+| EV-1a | — | `~/tb2-eval/jobs/vanillux2-base-k5-*` | Qwen3-8B baseline | Vanillux2Agent | 5 | — | — | pending |
+| EV-1b | — | `~/tb2-eval/jobs/vanillux2-sft-k5-*` | qwen3-8b-sft (run1) | Vanillux2Agent | 5 | — | — | pending |
