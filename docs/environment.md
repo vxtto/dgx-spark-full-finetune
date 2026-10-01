@@ -1,7 +1,6 @@
 # Environment — DGX Spark
 
-Everything here runs **on the Spark**, never on a laptop (`AGENTS.md` §6). Commands
-that build from source are recorded here as required by §6.
+Everything here runs **on the Spark**, never on a laptop.
 
 ## 0. Hardware facts to confirm before trusting anything below
 
@@ -55,16 +54,16 @@ uv sync
 declares. If it tries to build `flash-attn`, stop — the aarch64 marker is not being
 applied, and that needs fixing before anything else.
 
-Then, from this repo:
+Then apply the patch from this repo:
 
 ```bash
-python scripts/verify_spark_env.py
+git -C ~/tmax apply patches/finetune-spark.patch
 ```
 
-It checks arch, capability, bf16, the resolved attention backend, and DeepSpeed. Do not
-start a run until it passes.
+`scripts/sft_qwen3_8b_train_it.sh` checks the patch, the resolved `uv` environment and
+the attention backend before it starts, and refuses to run if any of them is wrong.
 
-## 4. Attention backend — why no patch is needed
+## 4. Attention backend
 
 `open_instruct/model_utils.py`:
 
@@ -80,8 +79,7 @@ def detect_attn_implementation() -> str:
 With no flash-attn installed the last branch is taken and the model loads with SDPA.
 There is no `--attn_implementation` flag; it is detected, not configured.
 
-**This is a real divergence from the paper** (Table 14 specifies flash attention 3) and
-is recorded as such in `docs/decisions.md` D-04.
+**This is a real divergence from the paper**, whose Table 14 specifies flash attention 3.
 
 > Note the second branch: GB10 reports compute major **12**, so `>= 10` is satisfied.
 > If a `flash-attn-4` wheel ever does install on this box it will be selected silently.
@@ -94,7 +92,7 @@ and x86_64-only respectively), but **`flash-attn-4` is gated only on Darwin** an
 as a `py3-none-any` wheel, so it installs here. A plain `uv pip install -e .` in the
 open-instruct checkout resolves 197 packages including `flash-attn-4==4.0.0b5` and
 `vllm==0.26.0`, and would silently move attention from SDPA to `flash_4` — away from
-the backend every number in `docs/experiments.md` was measured on. Install open-instruct's
+the backend every number in `docs/results.md` was measured on. Install open-instruct's
 dependencies selectively, not with `-e .`.
 `scripts/sft_qwen3_8b_train_it.sh` refuses to start if `flash_attn` is importable.
 
@@ -110,10 +108,17 @@ a clean aarch64 box. `patches/finetune-spark.patch` wraps it in `try/except`.
 - [x] `bitsandbytes==0.49.1` — **works on sm_121**, verified by running real
       `AdamW8bit` steps. Ships an aarch64 manylinux wheel; no source build needed.
 - [x] `liger-kernel==0.8.0` — **works on sm_121**. Required for the 32k full
-      fine-tune (D-08).
+      fine-tune. Its in-layer kernels (RMSNorm, RoPE, SwiGLU) **cannot be
+      compiled**: dynamo in torch 2.11 asserts while tracing `LigerRMSNormFunction`.
+      Under `SPARK_OPT_CONFIG` only its fused linear cross-entropy stays on.
+- [x] `torchao==0.18.0` — pure-Python wheel (`py3-none-any`). FP8 training
+      (`torchao.float8`, tensorwise and rowwise `_scaled_mm`) **works on sm_121** with
+      torch 2.11. Only needed with `SPARK_OPT_CONFIG`; the launcher refuses to
+      start without it:
+      `uv pip install --python "$UV_ENV/bin/python" --no-deps torchao==0.18.0`
 - [x] `deepspeed>=0.18.3` — installed, but **not used**. Single node makes ZeRO-3
       pointless and it is incompatible with `--use_8bit_optimizer`; its CPU offload is
-      actively harmful on a unified pool (D-08). No longer a project risk.
+      actively harmful on a unified pool (see `docs/spark-memory-guardrail.md` §5).
 - [ ] `vllm>=0.19.1` — needed for evaluation/generation, not for the SFT run itself.
       Can be deferred.
 
@@ -146,7 +151,7 @@ uv pip install --python "$TMAX_DIR/training/open-instruct/.venv/bin/python" \
 
 ## 6. Running long jobs
 
-A dropped SSH session must not kill a multi-day run (§6). **Start the memory
+A dropped SSH session must not kill a multi-day run. **Start the memory
 guardrail first** — see `docs/spark-memory-guardrail.md`; without it a memory overrun
 makes the box unreachable for hours instead of failing fast.
 
@@ -163,5 +168,5 @@ EXP_NAME=sft_qwen3_8b_run1 bash scripts/sft_qwen3_8b_train_it.sh
 # detach: Ctrl-b d ; reattach: tmux attach -t sft
 ```
 
-Both scripts tee to `runs/<exp_name>_<stamp>/train.log` regardless. `systemd-run --user
+The launcher tees to `runs/<exp_name>_<stamp>/train.log` regardless. `systemd-run --user
 --unit=<name> --collect` is an alternative to tmux that survives logout.

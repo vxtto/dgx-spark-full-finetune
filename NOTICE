@@ -1,0 +1,14 @@
+dgx-spark-full-finetune
+Copyright 2026 Vittorio Rossi and Alfredo Ceci
+
+patches/finetune-spark.patch and patches/vanillux2-docker-timeout.patch are
+modifications to files from hamishivi/tmax (https://github.com/hamishivi/tmax),
+a fork of allenai/open-instruct, Copyright AllenAI, licensed under the Apache
+License, Version 2.0. They apply to tmax commit 6d3d606c.
+
+spark_opt.py replaces one function of Liger Kernel
+(https://github.com/linkedin/Liger-Kernel, BSD 2-Clause) at run time and calls
+its cross-entropy kernel unchanged. No Liger Kernel source is copied here.
+
+patches/tmax-harness-config/ holds the system prompt and tool schema that the
+tmax SFT trajectories were generated with, reconstructed from the released data.
