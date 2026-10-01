@@ -1,0 +1,6 @@
+exp_name:   sft_qwen3_8b_run1
+started:    2026-09-20T07:24:00+02:00
+dataset:    vittorino/tmax-sft-cleaned  [skill_tax_20260505_2.2k_combined_balanced_thinking_all]
+this repo:  b5a3cf354e061715d9da01a45c6d97208f250407
+tmax:       6d3d606c0f9de6ceec9481f9ccc793936818fef0 (+ patches/finetune-spark.patch)
+extra args: 

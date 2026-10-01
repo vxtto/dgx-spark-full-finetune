@@ -1,0 +1,12 @@
+exp_name:   sft_qwen3_8b_run2
+started:    2026-09-28T03:31:42+02:00
+dataset:    vittorino/tmax-sft-cleaned  [skill_tax_20260505_2.2k_combined_balanced_thinking_all]
+this repo:  fa130afdc5e6e611077429967a628361e12e4cd3
+tmax:       6d3d606c0f9de6ceec9481f9ccc793936818fef0 (+ patches/finetune-spark.patch)
+extra args: 
+spark_opt:  /home/vitto/Desktop/learning-LLM-SFT/training-an-LLM/configs/spark_opt_qwen3_8b.yaml (sha256 2be6b84f3ae4e826, copied as spark_opt.yaml)
+            spark_opt.py sha256 7eb3805f07093f9f
+            torchao 0.18.0
+            PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+snapshots:  https://huggingface.co/vittorino/qwen3-8b-tmax-sft-run2 every 6 h (public)
+uncommitted: 9 path(s) in this repo -> repo.diff, *.py copies

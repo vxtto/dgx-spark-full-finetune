@@ -1,0 +1,127 @@
+{
+  "config": "/home/vitto/Desktop/learning-LLM-SFT/training-an-LLM/configs/spark_opt_qwen3_8b.yaml",
+  "started": "20260928T004818Z",
+  "repo_commit": "fa130afdc5e6e611077429967a628361e12e4cd3",
+  "load_s": 86.6,
+  "float8_modules": 252,
+  "flce_check": {
+    "loss_rel_err": 0.0,
+    "grad_input_rel_err": 0.0,
+    "grad_weight_rel_err_vs_liger_fp32_accum": 0.0013978582574054599
+  },
+  "probe": {
+    "tokens": 32768,
+    "layers_not_checkpointed": 6,
+    "peak_alloc_gib": 46.35,
+    "peak_reserved_gib": 47.32,
+    "peak_system_used_gb": 54.3
+  },
+  "warmup_s": 73.6,
+  "pad_check": {
+    "loss_padded_by_spark_opt": 12.397052764892578,
+    "loss_junk_appended": 12.395576477050781,
+    "identical": false
+  },
+  "kernels": {
+    "total_ms": 7232.007564999992,
+    "share_pct": {
+      "attention (FlashAttention-2)": 19.5,
+      "GEMM": 41.5,
+      "inductor fused (norms, rope, swiglu, fp8 casts)": 37.3,
+      "Liger CE kernel": 0.3,
+      "eager elementwise": 0.8,
+      "other": 0.7
+    },
+    "top_kernels": [
+      "  1075.2 ms  n=  36  triton_per_fused__scaled_mm__to_copy__unsafe_view_add_clamp_clone_div_expand_mul_neg_pow_reciprocal_",
+      "   975.0 ms  n= 252  nvjet_sm121_qrtst_mma_128x256x128_2_32x128x128_tmaAB_bz_TNNN",
+      "   850.3 ms  n=  36  void pytorch_flash::flash_bwd_dq_dk_dv_loop_seqk_parallel_kernel<Flash_bwd_kernel_traits<128, 64, 64",
+      "   715.8 ms  n= 204  nvjet_sm121_qqtst_mma_192x176x128_2_48x88x128_tmaAB_bz_TNNN",
+      "   459.7 ms  n=  51  void pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<128, 128, 64, 4, false, false, cutlass:",
+      "   317.9 ms  n= 108  nvjet_sm121_qrtst_mma_192x176x128_2_48x88x128_tmaAB_bz_TNNN",
+      "   315.2 ms  n= 153  nvjet_sm121_qqtst_mma_128x256x128_2_32x128x128_tmaAB_bz_TNNN",
+      "   233.0 ms  n=  36  triton_poi_fused__scaled_mm__to_copy_add_clamp_clone_mul_reciprocal_silu_silu_backward_t_view_7",
+      "   181.1 ms  n=   3  nvjet_sm121_tst_mma_128x208x64_2_32x104x64_tmaAB_bz_NNNN",
+      "   164.6 ms  n=   3  nvjet_sm121_tss_mma_128x208x64_2_32x104x64_tmaAB_bx_NTNN",
+      "   164.4 ms  n=  51  triton_red_fused_abs_max_mul_silu_view_18",
+      "   142.4 ms  n=  72  nvjet_sm121_qrtst_mma_192x160x128_2_48x80x128_tmaAB_bz_TNNN"
+    ],
+    "fp32_add_hotspot_ms": 2.1736010000002572
+  },
+  "timed_tokens": 53120,
+  "timed_s": 39.86,
+  "tok_per_s": 1332.7,
+  "step_s": [
+    14.93,
+    24.93
+  ],
+  "speedup_vs": {
+    "bf16 + compile, Liger FLCE": 1.591,
+    "fp8 + compile, Liger FLCE": 1.428
+  },
+  "micro_batches": [
+    {
+      "tokens": 3744,
+      "pad": 0,
+      "layers_not_checkpointed": 36,
+      "seconds": 2.19
+    },
+    {
+      "tokens": 5152,
+      "pad": 0,
+      "layers_not_checkpointed": 36,
+      "seconds": 3.32
+    },
+    {
+      "tokens": 7072,
+      "pad": 0,
+      "layers_not_checkpointed": 29,
+      "seconds": 4.67
+    },
+    {
+      "tokens": 6496,
+      "pad": 0,
+      "layers_not_checkpointed": 32,
+      "seconds": 4.12
+    },
+    {
+      "tokens": 15840,
+      "pad": 0,
+      "layers_not_checkpointed": 13,
+      "seconds": 13.51
+    },
+    {
+      "tokens": 8800,
+      "pad": 0,
+      "layers_not_checkpointed": 24,
+      "seconds": 6.65
+    },
+    {
+      "tokens": 4000,
+      "pad": 0,
+      "layers_not_checkpointed": 36,
+      "seconds": 2.61
+    },
+    {
+      "tokens": 2016,
+      "pad": 0,
+      "layers_not_checkpointed": 36,
+      "seconds": 1.55
+    }
+  ],
+  "window_metrics": {
+    "spark_opt/pad_tokens_per_micro_batch": 0.0,
+    "spark_opt/layers_not_checkpointed": 30.25,
+    "spark_opt/flce_chunks_per_call": 2.0,
+    "spark_opt/flce_fallback_calls": 0.0
+  },
+  "timed_peak_alloc_gib": 70.86,
+  "timed_peak_system_used_gb": 82.8,
+  "losses_finite": true,
+  "mean_loss": 12.3241,
+  "compile": {
+    "unique_graphs": 5,
+    "recompiles_in_timed_window": 0,
+    "graph_breaks": 0
+  }
+}

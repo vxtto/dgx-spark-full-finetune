@@ -1,0 +1,10 @@
+exp_name:   smoke_spark_opt
+started:    2026-09-28T03:01:47+02:00
+dataset:    vittorino/tmax-sft-cleaned  [skill_tax_20260505_2.2k_combined_balanced_thinking_all]
+this repo:  fa130afdc5e6e611077429967a628361e12e4cd3
+tmax:       6d3d606c0f9de6ceec9481f9ccc793936818fef0 (+ patches/finetune-spark.patch)
+extra args: --max_train_steps 3 --push_to_hub false --try_launch_beaker_eval_jobs false --output_dir output/smoke_spark_opt
+spark_opt:  /home/vitto/Desktop/learning-LLM-SFT/training-an-LLM/configs/spark_opt_qwen3_8b.yaml (sha256 2be6b84f3ae4e826, copied as spark_opt.yaml)
+            spark_opt.py sha256 7eb3805f07093f9f
+            torchao 0.18.0
+            PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

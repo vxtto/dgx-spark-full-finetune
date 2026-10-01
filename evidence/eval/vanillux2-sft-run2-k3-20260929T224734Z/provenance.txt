@@ -1,0 +1,10 @@
+job_name:    vanillux2-sft-run2-k3-20260929T224734Z
+started:     2026-09-30T00:47:38+02:00
+arm:         sft-run2  (served model: qwen3-8b-sft)
+harness:     Vanillux2Agent (tmax 6d3d606c + patches/vanillux2-docker-timeout.patch)
+timeout_mult: 6  concurrency: 16
+dataset:     /home/vitto/Desktop/terminal-bench-2.0
+attempts_k:  3
+endpoint:    http://localhost:8888/v1
+this repo:   e2be68ce17d72056464780adbac58a05bbb787f4
+extra args:  

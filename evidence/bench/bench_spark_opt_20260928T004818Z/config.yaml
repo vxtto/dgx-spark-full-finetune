@@ -1,0 +1,28 @@
+# Throughput optimizations for the Qwen3-8B full fine-tune on the Spark.
+# Read by spark_opt.apply() when the launcher is given SPARK_OPT_CONFIG=<this file>.
+# Unset, the run is identical to sft_qwen3_8b_run1. Measurements behind each
+# value: docs/experiments.md, "Spark throughput optimizations".
+
+pad_to_multiple_of: 16        # FP8 weight-gradient GEMM needs tokens % 16 == 0
+
+fp8:
+  enabled: true
+  recipe: tensorwise          # rowwise works on sm_121 too: more accurate, slower
+  skip_modules: [lm_head]     # Liger FLCE uses lm_head.weight directly
+
+compile:
+  enabled: true               # FP8 without compile is slower than BF16
+  dynamic: true
+
+attention:
+  sdpa_backend: flash         # FA2: cuDNN 9.19 -5..11%, FlexAttention -50%, mem-efficient has no GQA
+  allow_math_fallback: true
+
+flce:
+  chunk_tokens: 4096          # Liger's heuristic gives ~512; each chunk rewrites the full 151936x4096 grad
+
+checkpointing:
+  adaptive: true
+  activation_budget_gib: 20   # extra saved activations allowed on top of full checkpointing
+  bytes_per_token_layer: 88371  # 86.3 KiB, measured on a compiled FP8 Qwen3 layer, linear in tokens
+  safety_factor: 1.15

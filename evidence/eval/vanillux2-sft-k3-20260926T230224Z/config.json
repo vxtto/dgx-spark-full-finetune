@@ -1,0 +1,23 @@
+{
+    "job_name": "vanillux2-sft-k3-20260926T230224Z",
+    "jobs_dir": "/home/aceci0127/tb2-eval/jobs",
+    "n_attempts": 3,
+    "timeout_multiplier": 6.0,
+    "agent_setup_timeout_multiplier": 5.0,
+    "n_concurrent_trials": 16,
+    "agents": [
+        {
+            "name": "Vanillux2Agent:Vanillux2Agent",
+            "model_name": "openai/qwen3-8b-sft",
+            "kwargs": {
+                "api_base": "http://localhost:8888/v1",
+                "max_format_errors": 64
+            }
+        }
+    ],
+    "datasets": [
+        {
+            "path": "."
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+exp_name:   prof_nsys
+started:    2026-09-26T08:32:31+02:00
+dataset:    vittorino/tmax-sft-cleaned  [skill_tax_20260505_2.2k_combined_balanced_thinking_all]
+this repo:  fa130afdc5e6e611077429967a628361e12e4cd3
+tmax:       6d3d606c0f9de6ceec9481f9ccc793936818fef0 (+ patches/finetune-spark.patch)
+extra args: --max_train_steps 5 --push_to_hub false --try_launch_beaker_eval_jobs false --output_dir output/prof_nsys
