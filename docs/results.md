@@ -71,7 +71,7 @@ step by step.
 
 Source: `evidence/steps/run1.csv` and `run2.csv` (one row per optimizer step, taken
 from each run's training log) and `evidence/provenance/`. `scripts/plot_runs.py`
-draws the two figures in the README from those files.
+draws the README figures.
 
 ## 4. Where run 1's time went
 

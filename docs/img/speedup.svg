@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 218" width="760" height="218" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Throughput of each configuration on the same micro-batches">
+<rect width="760" height="218" rx="8" fill="#fcfcfb"/>
+<text x="24.0" y="28.0" font-size="15" font-weight="600" fill="#0b0b0b" text-anchor="start">Where the speed comes from</text>
+<text x="24.0" y="46.0" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">Tokens per second on the same 8 micro-batches of run 1 (53,120 tokens), all with torch.compile</text>
+<line x1="300" x2="300" y1="62" y2="196" stroke="#e6e5e1"/>
+<text x="288.0" y="80.0" font-size="12" font-weight="400" fill="#0b0b0b" text-anchor="end">bf16, stock cross-entropy</text>
+<path d="M300.0,66.0 h193.5 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-193.5 z" fill="#7d7c77"/>
+<text x="505.5" y="80.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="start">838 tok/s</text>
+<text x="583.5" y="80.0" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">1.00×</text>
+<text x="288.0" y="114.0" font-size="12" font-weight="400" fill="#0b0b0b" text-anchor="end">+ FP8 only</text>
+<path d="M300.0,100.0 h215.9 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-215.9 z" fill="#7d7c77"/>
+<text x="527.9" y="114.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="start">933 tok/s</text>
+<text x="605.9" y="114.0" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">1.11×</text>
+<text x="288.0" y="148.0" font-size="12" font-weight="400" fill="#0b0b0b" text-anchor="end">cross-entropy fix + adaptive checkpointing</text>
+<path d="M300.0,134.0 h276.5 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-276.5 z" fill="#7d7c77"/>
+<text x="588.5" y="148.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="start">1,190 tok/s</text>
+<text x="666.5" y="148.0" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">1.42×</text>
+<text x="288.0" y="182.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="end">all three: the run 2 config</text>
+<path d="M300.0,168.0 h312.3 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-312.3 z" fill="#eb6834"/>
+<text x="624.3" y="182.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="start">1,342 tok/s</text>
+<text x="702.3" y="182.0" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">1.60×</text>
+</svg>

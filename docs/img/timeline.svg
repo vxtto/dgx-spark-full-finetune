@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 286" width="760" height="286" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Project timeline, 13 September to 1 October 2026">
+<rect width="760" height="286" rx="8" fill="#fcfcfb"/>
+<text x="24.0" y="28.0" font-size="15" font-weight="600" fill="#0b0b0b" text-anchor="start">Three weeks, September 2026</text>
+<text x="24.0" y="46.0" font-size="12" font-weight="400" fill="#52514e" text-anchor="start">Dates from the run and eval provenance files</text>
+<line x1="170.0" x2="170.0" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="170.0" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">13 Sep</text>
+<line x1="229.6" x2="229.6" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="229.6" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">15 Sep</text>
+<line x1="289.2" x2="289.2" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="289.2" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">17 Sep</text>
+<line x1="348.7" x2="348.7" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="348.7" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">19 Sep</text>
+<line x1="408.3" x2="408.3" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="408.3" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">21 Sep</text>
+<line x1="467.9" x2="467.9" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="467.9" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">23 Sep</text>
+<line x1="527.5" x2="527.5" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="527.5" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">25 Sep</text>
+<line x1="587.1" x2="587.1" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="587.1" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">27 Sep</text>
+<line x1="646.6" x2="646.6" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="646.6" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">29 Sep</text>
+<line x1="706.2" x2="706.2" y1="56" y2="248" stroke="#e6e5e1"/>
+<text x="706.2" y="264.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="middle">1 Oct</text>
+<text x="158.0" y="78.0" font-size="12" font-weight="400" fill="#0b0b0b" text-anchor="end">Setup, first attempts</text>
+<rect x="170.0" y="66" width="119.2" height="16" rx="4" fill="#7d7c77"/>
+<text x="297.2" y="78.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="start">13 Sep: project start</text>
+<text x="158.0" y="108.0" font-size="12" font-weight="400" fill="#0b0b0b" text-anchor="end">Make it fit</text>
+<rect x="289.2" y="96" width="89.4" height="16" rx="4" fill="#7d7c77"/>
+<text x="386.5" y="108.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="start">killed at 113 GB, then 72 GB</text>
+<text x="158.0" y="138.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="end">Run 1</text>
+<rect x="387.7" y="126" width="77.5" height="16" rx="4" fill="#2a78d6"/>
+<text x="473.2" y="138.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="start">62 h 26 min</text>
+<text x="158.0" y="168.0" font-size="12" font-weight="400" fill="#0b0b0b" text-anchor="end">Profile and benchmark</text>
+<rect x="567.9" y="156" width="53.1" height="16" rx="4" fill="#7d7c77"/>
+<text x="559.9" y="168.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="end">nsys, micro-benchmarks</text>
+<text x="158.0" y="198.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="end">Run 2</text>
+<rect x="621.2" y="186" width="55.4" height="16" rx="4" fill="#eb6834"/>
+<text x="613.2" y="198.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="end">44 h 35 min</text>
+<text x="158.0" y="228.0" font-size="12" font-weight="400" fill="#0b0b0b" text-anchor="end">Evaluation</text>
+<rect x="577.2" y="216" width="131.6" height="16" rx="4" fill="#7d7c77"/>
+<text x="569.2" y="228.0" font-size="11" font-weight="400" fill="#52514e" text-anchor="end">3 arms, 267 trials each</text>
+</svg>
