@@ -69,7 +69,7 @@ JOBS_DIR="${JOBS_DIR:-$HOME/tb2-eval/jobs}"
 MODEL_LABEL="${MODEL_LABEL:?set MODEL_LABEL=base or MODEL_LABEL=sft}"
 ARM_MODEL="${ARM_MODEL:?set ARM_MODEL to the vLLM --served-model-name}"
 
-# --- Attempts per task — OPEN DECISION (D-07), read before changing -------
+# --- Attempts per task — OPEN DECISION, read before changing -------
 # K=1 on 89 tasks resolves only a jump to ~15%. The paper expects 1.1 -> 6.0,
 # which at K=1 stays inside the noise: 3/89 has a 95% CI of [0.7%, 9.5%].
 # tmax's own eval example uses -k 5. Cost at ~7 h per pass:
@@ -167,7 +167,7 @@ if ! curl -sf -m 10 "$ENDPOINT/models" | grep -q "\"$ARM_MODEL\""; then
     curl -sf -m 10 "$ENDPOINT/models" | grep -oE '"id":"[^"]+"' >&2
     echo "       ARM_MODEL must match vLLM's --served-model-name." >&2; exit 1; fi
 
-# --- Provenance (AGENTS.md §5: an untracked run didn't happen) ------------
+# --- Provenance: an untracked run didn't happen ----------------------------
 mkdir -p "$JOBS_DIR"
 {
     echo "job_name:    $JOB_NAME"

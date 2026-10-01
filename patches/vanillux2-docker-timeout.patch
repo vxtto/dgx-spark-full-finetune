@@ -1,0 +1,68 @@
+diff --git a/Vanillux2Agent/agent.py b/Vanillux2Agent/agent.py
+index b0f753ff..99a0c1ed 100644
+--- a/Vanillux2Agent/agent.py
++++ b/Vanillux2Agent/agent.py
+@@ -13,13 +13,14 @@ import json
+ import logging
+ import os
+ import re
++import shlex
+ import time
+ from pathlib import Path
+ from typing import Any
+ 
+ import litellm
+ from harbor.agents.base import BaseAgent
+-from harbor.environments.base import BaseEnvironment
++from harbor.environments.base import BaseEnvironment, ExecResult
+ from harbor.models.agent.context import AgentContext
+ 
+ from rl_data.generator.sample_solutions import (
+@@ -51,6 +52,10 @@ RETRY_BASE_DELAY = 2.0
+ LLM_TIMEOUT_SECONDS = 5 * 60 * 60
+ LLM_OUTER_TIMEOUT_BUFFER_SECONDS = 30
+ _STATE_DIR = "/tmp/.vanillux2"
++# Exit code coreutils `timeout` returns when it kills the command.
++_TIMEOUT_EXIT_CODE = 124
++# Headroom between the in-container `timeout` and harbor's own exec deadline.
++_EXEC_TIMEOUT_GRACE_SECONDS = 30
+ _COMPOSE_PROVIDER_RE = re.compile(
+     r"\x1b\[4m>>>> Executing external compose provider "
+     r'"[^"]*docker-compose"\. Please see podman-compose\(1\) for how to disable '
+@@ -328,10 +333,33 @@ class Vanillux2Agent(BaseAgent):
+     async def _execute_bash(
+         self, command: str, environment: BaseEnvironment
+     ) -> Any:
+-        return await environment.exec(
+-            command=self._wrap_command(command),
+-            timeout_sec=self.command_timeout,
++        if type(environment).__name__ != "DockerEnvironment":
++            return await environment.exec(
++                command=self._wrap_command(command),
++                timeout_sec=self.command_timeout,
++            )
++        # Harbor's Daytona backend, which the paper evaluated on, runs commands
++        # as `timeout N bash -c ...` and hands exit code 124 back to the agent.
++        # Its Docker backend instead raises RuntimeError on timeout, which ends
++        # the whole trial. Enforce the limit inside the container the same way
++        # Daytona does, so a slow command costs the agent a turn, not the trial.
++        wrapped = (
++            f"timeout {self.command_timeout} bash -c "
++            f"{shlex.quote(self._wrap_command(command))}"
+         )
++        try:
++            return await environment.exec(
++                command=wrapped,
++                timeout_sec=self.command_timeout + _EXEC_TIMEOUT_GRACE_SECONDS,
++            )
++        except RuntimeError as e:
++            # Backstop: a detached child can hold the output pipe open past the
++            # in-container timeout.
++            if "timed out" not in str(e):
++                raise
++            return ExecResult(
++                stdout=None, stderr=str(e), return_code=_TIMEOUT_EXIT_CODE
++            )
+ 
+     @staticmethod
+     def _format_tool_result(result: Any) -> str:
