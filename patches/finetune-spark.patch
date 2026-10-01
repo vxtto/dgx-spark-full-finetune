@@ -1,33 +1,42 @@
 diff --git a/training/open-instruct/open_instruct/finetune.py b/training/open-instruct/open_instruct/finetune.py
-index d2736366..4b7b0798 100644
+index d273636..b0abb4b 100644
 --- a/training/open-instruct/open_instruct/finetune.py
 +++ b/training/open-instruct/open_instruct/finetune.py
-@@ -651,8 +651,11 @@ def main(args: FlatArguments, tc: TokenizerConfig):
-         if args.use_qlora:
-             model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing)
-         elif args.gradient_checkpointing:
--            # Enable gradient checkpointing for LoRA (non-QLoRA) too
--            model.gradient_checkpointing_enable()
-+            # Enable gradient checkpointing for LoRA (non-QLoRA) too.
-+            # use_reentrant=True: PyTorch's default non-reentrant checkpointing relies on
-+            # saved-tensor hooks that conflict with DeepSpeed ZeRO-3's own parameter-gathering
-+            # hooks for frozen (non-LoRA) weights, causing recomputation to see empty tensors.
-+            model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": True})
+@@ -387,6 +387,10 @@ def _create_scheduler(args: FlatArguments, optimizer, num_training_steps: int):
  
-         logger.info("Initializing LORA model...")
-         peft_config = LoraConfig(
-@@ -665,6 +668,10 @@ def main(args: FlatArguments, tc: TokenizerConfig):
-         )
-         model = get_peft_model(model, peft_config)
-         model.print_trainable_parameters()
-+        if args.gradient_checkpointing:
-+            # With the base model frozen, embedding outputs don't require grad by default,
-+            # which breaks activation-checkpointing recomputation. Standard PEFT fix.
-+            model.enable_input_require_grads()
+ 
+ def main(args: FlatArguments, tc: TokenizerConfig):
++    # DGX Spark throughput optimizations (spark_opt.py in the dgx-spark-full-finetune repo,
++    # which the launcher puts on PYTHONPATH). Unset leaves the run unchanged.
++    spark_opt_config = os.environ.get("SPARK_OPT_CONFIG")
++    spark_opt = None
+     # ------------------------------------------------------------
+     # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
+     # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
+@@ -615,6 +619,9 @@ def main(args: FlatArguments, tc: TokenizerConfig):
+                 local_files_only=True,
+                 # liger-kernel specific args
+                 fused_linear_cross_entropy=True,
++                # spark_opt compiles the decoder layers and dynamo in torch 2.11 cannot
++                # trace Liger's in-layer autograd Functions, so only FLCE stays Liger.
++                **({"rms_norm": False, "rope": False, "swiglu": False} if spark_opt_config else {}),
+             )
+         else:
+             model = AutoModelForCausalLM.from_pretrained(
+@@ -668,6 +675,12 @@ def main(args: FlatArguments, tc: TokenizerConfig):
      elif args.gradient_checkpointing:
          model.gradient_checkpointing_enable()
  
-@@ -725,14 +732,24 @@ def main(args: FlatArguments, tc: TokenizerConfig):
++    if spark_opt_config:
++        import spark_opt  # noqa: PLC0415
++
++        logger.info(f"Applying spark_opt from {spark_opt_config}")
++        spark_opt.apply(model, spark_opt.load_config(spark_opt_config))
++
+     _conv_kernel_size = getattr(model.config, "linear_conv_kernel_dim", None) or getattr(
+         getattr(model.config, "text_config", None), "linear_conv_kernel_dim", None
+     )
+@@ -725,14 +738,24 @@ def main(args: FlatArguments, tc: TokenizerConfig):
      # Optimizer
      optimizer_grouped_parameters = get_optimizer_grouped_parameters(model, args.weight_decay)
  
@@ -54,8 +63,28 @@ index d2736366..4b7b0798 100644
          )
      else:
          optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate, fused=args.fused_optimizer)
+@@ -1027,6 +1050,8 @@ def main(args: FlatArguments, tc: TokenizerConfig):
+                         logger.info(
+                             f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}, TPS: {total_tokens / (time.perf_counter() - start_time)}"
+                         )
++                    if spark_opt is not None:
++                        metrics_to_log.update(spark_opt.log_metrics())
+                     if args.verbose:
+                         accelerator.print(f"{metrics_to_log=}")
+                     if args.with_tracking:
+@@ -1068,6 +1093,10 @@ def main(args: FlatArguments, tc: TokenizerConfig):
+                 clean_last_n_checkpoints(args.output_dir, args.keep_last_n_checkpoints)
+             accelerator.wait_for_everyone()
+ 
++    if spark_opt is not None:
++        # Variable-length compiled training leaves GBs cached in the allocator; the
++        # final save gathers the model on top (~+12 GB in run1), so hand it back first.
++        torch.cuda.empty_cache()
+     if args.output_dir is not None:
+         save_with_accelerate(
+             accelerator, model, tokenizer, args.output_dir, args.use_lora, chat_template_name=tc.chat_template_name
 diff --git a/training/open-instruct/open_instruct/model_utils.py b/training/open-instruct/open_instruct/model_utils.py
-index 78734590..38d34dd0 100644
+index 7873459..38d34dd 100644
 --- a/training/open-instruct/open_instruct/model_utils.py
 +++ b/training/open-instruct/open_instruct/model_utils.py
 @@ -66,7 +66,13 @@ def detect_hf_attn_implementation() -> str:

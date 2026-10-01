@@ -7,6 +7,11 @@
 # Extra arguments are forwarded to finetune.py, so any flag can be overridden
 # from the command line without editing this file.
 #
+# SPARK_OPT_CONFIG=configs/spark_opt_qwen3_8b.yaml enables spark_opt.py: FP8 +
+# torch.compile, fixed Liger FLCE accumulation, pinned FlashAttention-2 and
+# adaptive gradient checkpointing. Unset, the run is identical to run1. Check a
+# config first with scripts/bench_spark_opt.py (~1 min timed, ~5 min wall).
+#
 # ===========================================================================
 # MEMORY GUARDRAIL — START THIS FIRST, IN A SECOND SHELL
 # ===========================================================================
@@ -45,7 +50,7 @@ DATASET="${DATASET:-vittorino/tmax-sft-cleaned}"
 DATASET_CONFIG="${DATASET_CONFIG:-skill_tax_20260505_2.2k_combined_balanced_thinking_all}"
 
 # --- Guards ---------------------------------------------------------------
-# Training never runs on a laptop (AGENTS.md section 6).
+# Training only runs on the Spark.
 if [[ "$(uname -s)" != "Linux" ]] || ! command -v nvidia-smi >/dev/null 2>&1; then
     echo "error: not the Spark (need Linux + nvidia-smi)." >&2
     exit 1
@@ -87,14 +92,40 @@ done
 # Darwin, and ships as a py3-none-any wheel, so `uv pip install -e .` WILL
 # install it on aarch64. detect_attn_implementation() then selects flash_4
 # (GB10 reports major 12, and the branch tests >= 10), silently replacing the
-# SDPA backend every measurement in docs/experiments.md was made on.
+# SDPA backend every measurement in docs/results.md was made on.
 if (cd "$OI_DIR" && uv run --no-sync python -c "import flash_attn") >/dev/null 2>&1; then
     echo "error: flash_attn is installed; attention would silently switch to flash_4." >&2
     echo "       uv pip uninstall --python \"$UV_ENV/bin/python\" flash-attn-4 flash-attn" >&2
     exit 1
 fi
 
-# --- Provenance (AGENTS.md section 5: an untracked run didn't happen) ------
+# --- Spark throughput optimizations (opt-in) -------------------------------
+SPARK_OPT_CONFIG="${SPARK_OPT_CONFIG:-}"
+if [[ -n "$SPARK_OPT_CONFIG" ]]; then
+    [[ "$SPARK_OPT_CONFIG" = /* ]] || SPARK_OPT_CONFIG="$REPO_ROOT/$SPARK_OPT_CONFIG"
+    if [[ ! -f "$SPARK_OPT_CONFIG" ]]; then
+        echo "error: SPARK_OPT_CONFIG not found: $SPARK_OPT_CONFIG" >&2
+        exit 1
+    fi
+    # Without the hook finetune.py would ignore the variable and train as run1.
+    if ! grep -q "SPARK_OPT_CONFIG" "$OI_DIR/open_instruct/finetune.py"; then
+        echo "error: finetune.py lacks the spark_opt hook; apply patches/finetune-spark.patch" >&2
+        exit 1
+    fi
+    if ! (cd "$OI_DIR" && uv run --no-sync python -c "import torchao") >/dev/null 2>&1; then
+        echo "error: 'torchao' missing from $UV_ENV (needed for FP8)" >&2
+        echo "       uv pip install --python \"$UV_ENV/bin/python\" --no-deps torchao==0.18.0" >&2
+        exit 1
+    fi
+    export SPARK_OPT_CONFIG
+    export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+    # Every micro-batch has a different length, which fragments the default
+    # allocator: at 32k tokens it reserved 79 GiB for 62 GiB live (86.8 GB system).
+    # Expandable segments: 65 GiB reserved, 72.3 GB system, same speed.
+    export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+fi
+
+# --- Provenance: every run records what it was launched from ---------------
 mkdir -p "$RUN_DIR"
 {
     echo "exp_name:   $EXP_NAME"
@@ -103,7 +134,21 @@ mkdir -p "$RUN_DIR"
     echo "this repo:  $(git -C "$REPO_ROOT" rev-parse HEAD)"
     echo "tmax:       $(git -C "$TMAX_DIR" rev-parse HEAD) (+ patches/finetune-spark.patch)"
     echo "extra args: $*"
+    if [[ -n "$SPARK_OPT_CONFIG" ]]; then
+        echo "spark_opt:  $SPARK_OPT_CONFIG (sha256 $(sha256sum "$SPARK_OPT_CONFIG" | cut -c1-16), copied as spark_opt.yaml)"
+        echo "            spark_opt.py sha256 $(sha256sum "$REPO_ROOT/spark_opt.py" | cut -c1-16)"
+        echo "            torchao $(cd "$OI_DIR" && uv run --no-sync python -c "import torchao; print(torchao.__version__)" 2>/dev/null | tail -1)"
+        echo "            PYTORCH_CUDA_ALLOC_CONF=$PYTORCH_CUDA_ALLOC_CONF"
+    else
+        echo "spark_opt:  off"
+    fi
+    # Uncommitted work is part of the run: diffs and module copies sit next to this file.
+    echo "uncommitted: $(git -C "$REPO_ROOT" status --porcelain | wc -l) path(s) in this repo -> repo.diff, spark_opt.py copy"
 } > "$RUN_DIR/provenance.txt"
+[[ -z "$SPARK_OPT_CONFIG" ]] || cp "$SPARK_OPT_CONFIG" "$RUN_DIR/spark_opt.yaml"
+git -C "$REPO_ROOT" diff HEAD > "$RUN_DIR/repo.diff"
+git -C "$TMAX_DIR" diff HEAD > "$RUN_DIR/tmax.diff"
+cp "$REPO_ROOT"/spark_opt.py "$RUN_DIR"/
 
 echo "run dir: $RUN_DIR"
 echo "REMINDER: is the 110 GB kill loop running in another shell?"
