@@ -19,15 +19,6 @@ module, launcher, and the measurements.
 
 <img src="docs/img/timeline.svg" alt="Project timeline, 13 September to 1 October 2026">
 
-## Make it fit
-
-<img src="docs/img/memory.svg" alt="Memory by component: 98 GB before activations with fp32 AdamW, 72 GB peak with 8-bit AdamW and a fused cross-entropy">
-
-How the numbers were measured, and the kill loop every run on this machine needs:
-[`docs/spark-memory-guardrail.md`](docs/spark-memory-guardrail.md).
-
-## Make it faster
-
 | | Run 1: make it fit | Run 2: make it fast |
 |---|---|---|
 | Throughput | 849 tok/s | 1,189 tok/s (**+40%**) |
@@ -41,8 +32,6 @@ How the numbers were measured, and the kill loop every run on this machine needs
     <td><img src="docs/img/loss.svg" alt="Training loss per 100 steps for both runs"></td>
   </tr>
 </table>
-
-<img src="docs/img/speedup.svg" alt="Tokens per second per configuration on the same micro-batches: 838, 933, 1,190 and 1,342">
 
 Profiling run 1 showed 9% of GPU time rebuilding the output layer's gradient about
 30 times per sequence, and every layer being recomputed on every sequence. Fixing
